@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pool Verifier - Satellite View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #16213e;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .header h1 {
+            font-size: 1.4em;
+            color: #00d9ff;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0f3460;
+            color: #00d9ff;
+            border: 1px solid #00d9ff;
+        }
+
+        .btn-primary:hover {
+            background: #00d9ff;
+            color: #1a1a2e;
+        }
+
+        .btn-yes {
+            background: #00875a;
+            color: white;
+            font-size: 18px;
+            padding: 15px 40px;
+        }
+
+        .btn-yes:hover {
+            background: #00a86b;
+            transform: scale(1.05);
+        }
+
+        .btn-no {
+            background: #c41e3a;
+            color: white;
+            font-size: 18px;
+            padding: 15px 40px;
+        }
+
+        .btn-no:hover {
+            background: #e63950;
+            transform: scale(1.05);
+        }
+
+        .btn-skip {
+            background: #555;
+            color: white;
+            font-size: 14px;
+            padding: 10px 25px;
+        }
+
+        .btn-skip:hover {
+            background: #777;
+        }
+
+        .btn-back {
+            background: #4a4a6a;
+            color: white;
+            font-size: 14px;
+            padding: 10px 25px;
+        }
+
+        .btn-back:hover {
+            background: #5a5a7a;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #16213e;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid #0f3460;
+        }
+
+        .address-info {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .address-info h2 {
+            color: #00d9ff;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .address-info .name {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .address-info .address {
+            font-size: 1em;
+            color: #ccc;
+            line-height: 1.5;
+        }
+
+        .progress-info {
+            background: #0f3460;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00a86b);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 0.9em;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-box .number {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .stat-box .label {
+            font-size: 0.75em;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .stat-box.verified .number { color: #00d9ff; }
+        .stat-box.pools .number { color: #00a86b; }
+        .stat-box.no-pools .number { color: #c41e3a; }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: auto;
+        }
+
+        .main-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .main-actions .btn {
+            flex: 1;
+        }
+
+        .secondary-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .secondary-actions .btn {
+            flex: 1;
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .map-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: #1a1a2e;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .map-placeholder p {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .upload-area {
+            border: 3px dashed #0f3460;
+            border-radius: 12px;
+            padding: 60px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .upload-area h2 {
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+
+        .upload-area p {
+            color: #888;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .keyboard-hint {
+            background: #0f3460;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            color: #888;
+            text-align: center;
+        }
+
+        .keyboard-hint kbd {
+            background: #1a1a2e;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #00d9ff;
+            margin: 0 3px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #00a86b;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.error {
+            background: #c41e3a;
+        }
+
+        .resume-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #0f3460;
+        }
+
+        .resume-section h3 {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Pool Verifier - Satellite View</h1>
+        <div class="header-controls">
+            <span id="fileName" style="color: #888; margin-right: 15px;"></span>
+            <button class="btn btn-primary" onclick="exportResults()" id="exportBtn" style="display: none;">
+                Export Results
+            </button>
+            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                Load CSV
+            </button>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".csv" onchange="loadCSV(event)">
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="address-info">
+                <h2>Current Address</h2>
+                <div class="name" id="currentName">-</div>
+                <div class="address" id="currentAddress">Load a CSV file to begin</div>
+            </div>
+
+            <div class="progress-info">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="progressText">0 / 0</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+            </div>
+
+            <div class="stats">
+                <div class="stat-box verified">
+                    <div class="number" id="statVerified">0</div>
+                    <div class="label">Verified</div>
+                </div>
+                <div class="stat-box pools">
+                    <div class="number" id="statPools">0</div>
+                    <div class="label">Has Pool</div>
+                </div>
+                <div class="stat-box no-pools">
+                    <div class="number" id="statNoPools">0</div>
+                    <div class="label">No Pool</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <div class="main-actions">
+                    <button class="btn btn-yes" onclick="markPool(true)" id="btnYes" disabled>
+                        ✓ POOL
+                    </button>
+                    <button class="btn btn-no" onclick="markPool(false)" id="btnNo" disabled>
+                        ✗ NO POOL
+                    </button>
+                </div>
+                <div class="secondary-actions">
+                    <button class="btn btn-back" onclick="goBack()" id="btnBack" disabled>
+                        ← Back
+                    </button>
+                    <button class="btn btn-skip" onclick="skipAddress()" id="btnSkip" disabled>
+                        Skip →
+                    </button>
+                </div>
+                <div class="keyboard-hint">
+                    <kbd>Y</kbd> Pool &nbsp; <kbd>N</kbd> No Pool &nbsp; <kbd>S</kbd> Skip &nbsp; <kbd>B</kbd> Back
+                </div>
+            </div>
+
+            <div class="resume-section" id="resumeSection" style="display: none;">
+                <h3>Resume Previous Session</h3>
+                <button class="btn btn-primary" onclick="loadSavedSession()" style="width: 100%;">
+                    Resume from saved progress
+                </button>
+            </div>
+        </div>
+
+        <div class="map-container" id="mapContainer">
+            <div class="map-placeholder">
+                <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                    <h2>Drop CSV or Click to Upload</h2>
+                    <p>Load your VistaPrint CSV to start verifying pools</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let addresses = [];
+        let currentIndex = 0;
+        let results = {};
+        let originalFileName = '';
+
+        // Check for saved session on load
+        window.onload = function() {
+            const saved = localStorage.getItem('poolVerifierSession');
+            if (saved) {
+                document.getElementById('resumeSection').style.display = 'block';
+            }
+        };
+
+        function loadSavedSession() {
+            const saved = localStorage.getItem('poolVerifierSession');
+            if (saved) {
+                const session = JSON.parse(saved);
+                addresses = session.addresses;
+                results = session.results;
+                currentIndex = session.currentIndex;
+                originalFileName = session.fileName || 'Resumed Session';
+
+                document.getElementById('fileName').textContent = originalFileName;
+                document.getElementById('exportBtn').style.display = 'inline-block';
+                document.getElementById('resumeSection').style.display = 'none';
+
+                enableButtons();
+                updateStats();
+                showAddress(currentIndex);
+                showToast('Session restored!');
+            }
+        }
+
+        function saveSession() {
+            const session = {
+                addresses: addresses,
+                results: results,
+                currentIndex: currentIndex,
+                fileName: originalFileName
+            };
+            localStorage.setItem('poolVerifierSession', JSON.stringify(session));
+        }
+
+        function loadCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            originalFileName = file.name;
+            document.getElementById('fileName').textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+
+            // Find column indices
+            const nameIdx = headers.findIndex(h => h.includes('recipient') || h.includes('name'));
+            const addrIdx = headers.findIndex(h => h === 'address' || h.includes('address'));
+            const cityIdx = headers.findIndex(h => h.includes('city'));
+            const stateIdx = headers.findIndex(h => h.includes('state'));
+            const zipIdx = headers.findIndex(h => h.includes('zip'));
+
+            addresses = [];
+            results = {};
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const cols = parseCSVLine(lines[i]);
+
+                const addr = {
+                    index: i - 1,
+                    name: cols[nameIdx] || '',
+                    address: cols[addrIdx] || '',
+                    city: cols[cityIdx] || '',
+                    state: cols[stateIdx] || '',
+                    zip: cols[zipIdx] || '',
+                    raw: lines[i]
+                };
+
+                addr.fullAddress = `${addr.address}, ${addr.city}, ${addr.state} ${addr.zip}`;
+                addresses.push(addr);
+            }
+
+            currentIndex = 0;
+            document.getElementById('exportBtn').style.display = 'inline-block';
+            document.getElementById('resumeSection').style.display = 'none';
+
+            enableButtons();
+            updateStats();
+            showAddress(0);
+            showToast(`Loaded ${addresses.length} addresses`);
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            return result;
+        }
+
+        function showAddress(index) {
+            if (index < 0 || index >= addresses.length) {
+                document.getElementById('currentName').textContent = 'Complete!';
+                document.getElementById('currentAddress').textContent = 'All addresses have been reviewed.';
+                document.getElementById('mapContainer').innerHTML = `
+                    <div class="map-placeholder">
+                        <h2 style="color: #00a86b;">Verification Complete!</h2>
+                        <p>Click "Export Results" to save your verified list.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const addr = addresses[index];
+            currentIndex = index;
+
+            document.getElementById('currentName').textContent = addr.name || 'Unknown';
+            document.getElementById('currentAddress').textContent = addr.fullAddress;
+
+            // Build Google Maps satellite URL
+            const query = encodeURIComponent(addr.fullAddress);
+            const mapUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${query}&maptype=satellite&zoom=20`;
+
+            document.getElementById('mapContainer').innerHTML = `
+                <iframe src="${mapUrl}" allowfullscreen loading="lazy"></iframe>
+            `;
+
+            updateStats();
+            saveSession();
+        }
+
+        function markPool(hasPool) {
+            if (addresses.length === 0) return;
+
+            results[currentIndex] = {
+                hasPool: hasPool,
+                verified: true
+            };
+
+            // Move to next unverified
+            let next = currentIndex + 1;
+            while (next < addresses.length && results[next]?.verified) {
+                next++;
+            }
+
+            if (next >= addresses.length) {
+                // Check if there are any unverified
+                let firstUnverified = addresses.findIndex((_, i) => !results[i]?.verified);
+                if (firstUnverified === -1) {
+                    showAddress(addresses.length); // Show complete
+                } else {
+                    showAddress(firstUnverified);
+                }
+            } else {
+                showAddress(next);
+            }
+
+            showToast(hasPool ? 'Marked: HAS POOL' : 'Marked: NO POOL', hasPool ? '' : 'error');
+        }
+
+        function skipAddress() {
+            if (currentIndex < addresses.length - 1) {
+                showAddress(currentIndex + 1);
+            }
+        }
+
+        function goBack() {
+            if (currentIndex > 0) {
+                showAddress(currentIndex - 1);
+            }
+        }
+
+        function updateStats() {
+            const verified = Object.values(results).filter(r => r.verified).length;
+            const pools = Object.values(results).filter(r => r.hasPool).length;
+            const noPools = verified - pools;
+
+            document.getElementById('statVerified').textContent = verified;
+            document.getElementById('statPools').textContent = pools;
+            document.getElementById('statNoPools').textContent = noPools;
+
+            const total = addresses.length;
+            const percent = total > 0 ? Math.round((verified / total) * 100) : 0;
+
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = `${currentIndex + 1} / ${total}`;
+            document.getElementById('progressPercent').textContent = percent + '% verified';
+        }
+
+        function enableButtons() {
+            document.getElementById('btnYes').disabled = false;
+            document.getElementById('btnNo').disabled = false;
+            document.getElementById('btnSkip').disabled = false;
+            document.getElementById('btnBack').disabled = false;
+        }
+
+        function exportResults() {
+            // Filter to only verified pools
+            const poolAddresses = addresses.filter((_, i) => results[i]?.hasPool === true);
+
+            if (poolAddresses.length === 0) {
+                showToast('No verified pools to export!', 'error');
+                return;
+            }
+
+            // Build CSV
+            let csv = 'Recipient,Company,Address,City,State,Zipcode\n';
+
+            for (const addr of poolAddresses) {
+                const name = (addr.name || '').replace(/"/g, '""');
+                const address = (addr.address || '').replace(/"/g, '""');
+                const city = (addr.city || '').replace(/"/g, '""');
+                const state = addr.state || '';
+                const zip = addr.zip || '';
+
+                csv += `"${name}","","${address}","${city}","${state}","${zip}"\n`;
+            }
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Verified_Pools_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast(`Exported ${poolAddresses.length} verified pool addresses!`);
+
+            // Clear saved session after export
+            localStorage.removeItem('poolVerifierSession');
+        }
+
+        function showToast(message, type = '') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show' + (type ? ' ' + type : '');
+
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 2000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (addresses.length === 0) return;
+
+            switch(e.key.toLowerCase()) {
+                case 'y':
+                    markPool(true);
+                    break;
+                case 'n':
+                    markPool(false);
+                    break;
+                case 's':
+                case 'arrowright':
+                    skipAddress();
+                    break;
+                case 'b':
+                case 'arrowleft':
+                    goBack();
+                    break;
+            }
+        });
+
+        // Drag and drop
+        document.body.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        document.body.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file && file.name.endsWith('.csv')) {
+                document.getElementById('fileInput').files = e.dataTransfer.files;
+                loadCSV({ target: { files: [file] } });
+            }
+        });
+    </script>
+</body>
+</html>

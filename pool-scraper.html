@@ -1,0 +1,2237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pool Scraper Pro</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #12121a;
+      --bg-hover: #1a1a24;
+      --border: #2a2a35;
+      --text: #e4e4e7;
+      --text-dim: #71717a;
+      --accent: #6366f1;
+      --green: #22c55e;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --cyan: #06b6d4;
+    }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+
+    /* Header */
+    .header { display: flex; align-items: center; padding: 8px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .logo { font-weight: 700; font-size: 15px; color: var(--accent); margin-right: 24px; display: flex; align-items: center; gap: 8px; }
+    .tabs { display: flex; gap: 4px; }
+    .tab { padding: 6px 14px; border-radius: 6px; cursor: pointer; color: var(--text-dim); font-size: 12px; font-weight: 500; }
+    .tab:hover { background: var(--bg-hover); color: var(--text); }
+    .tab.active { background: var(--accent); color: white; }
+    .tab .badge { background: var(--green); color: #000; font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
+    .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+    /* Layout */
+    .app { display: flex; height: calc(100vh - 41px); }
+    .panel-left { width: 320px; min-width: 320px; border-right: 1px solid var(--border); overflow-y: auto; background: var(--bg-card); }
+    .panel-main { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* Sections */
+    .section { padding: 12px; border-bottom: 1px solid var(--border); }
+    .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+    .section-title:hover { color: var(--text); }
+    .section-title .arrow { transition: transform 0.2s; }
+    .section.collapsed .section-content { display: none; }
+    .section.collapsed .arrow { transform: rotate(-90deg); }
+
+    /* Drop Zone */
+    .dropzone { border: 2px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .dropzone:hover, .dropzone.drag-over { border-color: var(--accent); background: rgba(99,102,241,0.1); }
+    .dropzone.has-file { border-color: var(--green); background: rgba(34,197,94,0.1); }
+    .dropzone-icon { font-size: 24px; margin-bottom: 6px; }
+    .dropzone h4 { font-size: 13px; margin-bottom: 4px; }
+    .dropzone p { font-size: 11px; color: var(--text-dim); }
+    .file-info { margin-top: 8px; font-size: 11px; color: var(--green); }
+
+    /* Form Elements */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+    .form-group input, .form-group select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 12px; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+
+    .checkbox-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+    .checkbox-item input { accent-color: var(--accent); }
+
+    /* Buttons */
+    .btn { padding: 6px 12px; border: none; border-radius: 5px; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-success { background: var(--green); color: #000; }
+    .btn-secondary { background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 4px 8px; font-size: 10px; }
+    .btn-lg { padding: 10px 20px; font-size: 13px; width: 100%; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Stats Bar */
+    .stats-bar { display: flex; gap: 12px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 18px; font-weight: 700; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.orange { color: var(--orange); }
+    .stat-value.red { color: var(--red); }
+    .stat-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; }
+
+    /* Export Bar */
+    .export-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .export-bar select, .export-bar input[type="number"] { padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 11px; }
+    .export-bar label { font-size: 11px; color: var(--text-dim); }
+    .export-preview { font-size: 12px; color: var(--green); font-weight: 600; }
+    .export-options { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+    .export-option { display: flex; align-items: center; gap: 4px; font-size: 11px; }
+
+    /* Action Bar */
+    .action-bar { display: flex; gap: 6px; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+
+    /* Filter Bar */
+    .filter-bar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+    .search-input { flex: 1; max-width: 250px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 12px; }
+    .filter-chips { display: flex; gap: 4px; }
+    .chip { padding: 4px 10px; border-radius: 12px; font-size: 11px; cursor: pointer; background: var(--bg-hover); color: var(--text-dim); border: 1px solid transparent; }
+    .chip:hover { color: var(--text); }
+    .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .chip.orange { border-color: var(--orange); }
+    .chip.green { border-color: var(--green); }
+    .chip.red { border-color: var(--red); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { text-align: left; padding: 8px; background: var(--bg-card); border-bottom: 2px solid var(--border); font-size: 10px; text-transform: uppercase; color: var(--text-dim); white-space: nowrap; cursor: pointer; }
+    th:hover { color: var(--text); }
+    td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+    tr:hover td { background: var(--bg-hover); }
+    .sort-icon { margin-left: 4px; opacity: 0.5; }
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; }
+    .badge-green { background: rgba(34,197,94,0.2); color: var(--green); }
+    .badge-orange { background: rgba(245,158,11,0.2); color: var(--orange); }
+    .note-input { width: 100%; padding: 4px 6px; border: 1px solid transparent; border-radius: 3px; background: transparent; color: var(--text); font-size: 11px; }
+    .note-input:hover, .note-input:focus { border-color: var(--border); background: var(--bg); outline: none; }
+    .row-btn { padding: 2px 6px; border: none; background: var(--bg-hover); border-radius: 3px; cursor: pointer; font-size: 10px; }
+    .row-btn:hover { background: var(--accent); }
+    .row-btn.danger:hover { background: var(--red); }
+
+    /* Location Summary */
+    .location-bar { padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
+    .location-bar h5 { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; }
+    .location-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .loc-chip { padding: 3px 8px; border-radius: 10px; font-size: 10px; background: var(--bg-hover); cursor: pointer; }
+    .loc-chip:hover { background: var(--accent); color: white; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal.show { display: flex; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 400px; max-width: 90%; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-header h3 { font-size: 15px; }
+    .modal-close { background: none; border: none; color: var(--text-dim); font-size: 20px; cursor: pointer; }
+
+    /* Progress */
+    .progress { height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+    .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+    .progress-text { font-size: 11px; color: var(--text-dim); text-align: center; }
+
+    /* Empty State */
+    .empty { text-align: center; padding: 60px 20px; color: var(--text-dim); }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+    .empty h4 { font-size: 14px; margin-bottom: 6px; color: var(--text); }
+
+    /* Secondary Panels */
+    .secondary-panel { display: none; }
+    .secondary-panel.active { display: block; }
+    .panel-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    .panel-card h3 { font-size: 14px; margin-bottom: 12px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border); padding: 12px 20px; border-radius: 8px; z-index: 2000; animation: slideIn 0.3s; }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } }
+
+    /* Mailed List */
+    .mailed-grid { display: grid; grid-template-columns: 1fr 50px 70px 50px; gap: 6px; font-size: 10px; font-family: monospace; }
+    .mailed-header { color: var(--text-dim); font-weight: 600; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .mailed-row { padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .mailed-row.recyclable { background: rgba(34,197,94,0.1); }
+
+    /* Collapsible mapper */
+    .mapper-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .mapper-grid .form-group { margin-bottom: 0; }
+    .preview-row { margin-top: 10px; padding: 8px; background: var(--bg); border-radius: 4px; font-size: 10px; color: var(--text-dim); max-height: 60px; overflow: auto; }
+
+    .hidden { display: none !important; }
+    input[type="file"] { display: none; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">🏊 Pool Scraper Pro</div>
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('main')">Process</div>
+      <div class="tab" onclick="showTab('mailed')">Mailed <span class="badge" id="mailedBadge" style="display:none">0</span></div>
+      <div class="tab" onclick="showTab('history')">History</div>
+      <div class="tab" onclick="showTab('merge')">Merge <span class="badge" id="mergeBadge" style="display:none">0</span></div>
+      <div class="tab" onclick="showTab('settings')">Settings</div>
+      <div class="tab" onclick="showTab('help')">Help</div>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-secondary btn-sm" onclick="clearAll()">Clear All</button>
+    </div>
+  </header>
+
+  <!-- Main Tab -->
+  <div id="tab-main" class="secondary-panel active">
+    <div class="app">
+      <!-- Left Panel -->
+      <div class="panel-left">
+        <!-- Upload Section -->
+        <div class="section">
+          <div class="dropzone" id="dropZone">
+            <div class="dropzone-icon">📁</div>
+            <h4>Drop parcel file here</h4>
+            <p>CSV, TXT, TSV</p>
+            <div class="file-info" id="fileInfo"></div>
+          </div>
+          <input type="file" id="fileInput" accept=".txt,.csv,.tsv">
+          <div id="detectedInfo" style="margin-top:8px; font-size:11px; color:var(--green); display:none;"></div>
+        </div>
+
+        <!-- Column Mapping -->
+        <div class="section" id="mapperSection" style="display:none;">
+          <div class="section-title" onclick="toggleSection(this)">
+            Column Mapping <span class="arrow">▼</span>
+          </div>
+          <div class="section-content">
+            <div class="mapper-grid">
+              <div class="form-group"><label>Name</label><select id="mapName"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Address 1</label><select id="mapAddress1"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Address 2</label><select id="mapAddress2"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>City</label><select id="mapCity"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>State</label><select id="mapState"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Zip</label><select id="mapZip"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Filter Col</label><select id="mapFilter"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Prop Zip</label><select id="mapFilterZip"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Value</label><select id="mapValue"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Year Built</label><select id="mapYearBuilt"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Prop Addr</label><select id="mapPropAddress"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Prop Type</label><select id="mapPropType"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Assessed</label><select id="mapAssessedValue"><option value="-1">--</option></select></div>
+            </div>
+            <div id="previewRow" class="preview-row"></div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+              <input type="text" id="presetName" placeholder="Preset name..." style="flex:1; padding:5px 8px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-size:11px;">
+              <button class="btn btn-sm btn-primary" onclick="saveCurrentPreset()">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location Filters -->
+        <div class="section">
+          <div class="section-title" onclick="toggleSection(this)">
+            Location Filters <span class="arrow">▼</span>
+          </div>
+          <div class="section-content">
+            <div class="form-row">
+              <div class="form-group"><label>State</label><input type="text" id="targetState" value="FL"></div>
+              <div class="form-group"><label>Cities</label><input type="text" id="targetCities" placeholder="Orlando, Tampa"></div>
+            </div>
+            <div class="form-group"><label>Zip Codes</label><input type="text" id="targetZips" placeholder="32746, 32801"></div>
+          </div>
+        </div>
+
+        <!-- Property Filters -->
+        <div class="section collapsed">
+          <div class="section-title" onclick="toggleSection(this)">
+            Property Filters <span class="arrow">▼</span>
+          </div>
+          <div class="section-content">
+            <div class="form-row">
+              <div class="form-group"><label>Min Value</label><input type="number" id="minValue" placeholder="200000"></div>
+              <div class="form-group"><label>Max Value</label><input type="number" id="maxValue" placeholder="1000000"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Min Year</label><input type="number" id="minYear" placeholder="1970"></div>
+              <div class="form-group"><label>Max Year</label><input type="number" id="maxYear" placeholder="2020"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Min Pool Age</label><input type="number" id="minPoolAge" placeholder="5"></div>
+              <div class="form-group"><label>Max Pool Age</label><input type="number" id="maxPoolAge" placeholder="30"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Min Assessed</label><input type="number" id="minAssessed" placeholder="0"></div>
+              <div class="form-group"><label>Max Assessed</label><input type="number" id="maxAssessed" placeholder="0"></div>
+            </div>
+            <div style="margin-top:8px;">
+              <label style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Property Types</label>
+              <div class="checkbox-row" style="margin-top:4px;">
+                <label class="checkbox-item"><input type="checkbox" id="allowSFR" checked> SFR</label>
+                <label class="checkbox-item"><input type="checkbox" id="allowCondo" checked> Condo</label>
+                <label class="checkbox-item"><input type="checkbox" id="allowMulti"> Multi</label>
+                <label class="checkbox-item"><input type="checkbox" id="allowVacant"> Vacant</label>
+                <label class="checkbox-item"><input type="checkbox" id="allowOther" checked> Other</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Options -->
+        <div class="section collapsed">
+          <div class="section-title" onclick="toggleSection(this)">
+            Output Options <span class="arrow">▼</span>
+          </div>
+          <div class="section-content">
+            <div class="checkbox-row">
+              <label class="checkbox-item"><input type="checkbox" id="removeBiz"> No Business</label>
+              <label class="checkbox-item"><input type="checkbox" id="absenteeOnly"> Absentee Only</label>
+              <label class="checkbox-item"><input type="checkbox" id="uppercase"> UPPERCASE</label>
+            </div>
+            <p style="font-size:10px; color:var(--text-dim); margin-top:6px;">Auto-removes: PO Box, Suite/Unit, Out-of-State, Foreign</p>
+          </div>
+        </div>
+
+        <!-- Sample Preview -->
+        <div class="section" id="samplePreviewCard" style="display:none;">
+          <div class="section-title">Sample Preview</div>
+          <div class="section-content">
+            <table style="font-size:10px;">
+              <thead><tr><th>Name</th><th>Address</th><th>City</th><th>State</th><th>Zip</th><th>Value</th><th>Year</th></tr></thead>
+              <tbody id="samplePreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Process Button -->
+        <div class="section">
+          <button class="btn btn-primary btn-lg" id="processBtn" disabled>Process File</button>
+          <div id="progressContainer" style="display:none;">
+            <div class="progress"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+            <div class="progress-text" id="progressText">Processing...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Panel -->
+      <div class="panel-main" id="resultsPanel">
+        <!-- Empty State -->
+        <div class="empty" id="emptyState">
+          <div class="empty-icon">📋</div>
+          <h4>No Data Yet</h4>
+          <p>Upload a parcel file and click Process to begin</p>
+        </div>
+
+        <!-- Results (hidden initially) -->
+        <div id="resultsSection" style="display:none;">
+          <!-- Stats -->
+          <div class="stats-bar">
+            <div class="stat"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Scanned</div></div>
+            <div class="stat"><div class="stat-value green" id="statMatches">0</div><div class="stat-label">Matches</div></div>
+            <div class="stat"><div class="stat-value orange" id="statDupes">0</div><div class="stat-label">Dupes</div></div>
+            <div class="stat"><div class="stat-value orange" id="statBiz">0</div><div class="stat-label">Business</div></div>
+            <div class="stat"><div class="stat-value red" id="statExcluded">0</div><div class="stat-label">Removed</div></div>
+          </div>
+
+          <!-- Export Bar -->
+          <div class="export-bar">
+            <label>Export:</label>
+            <select id="exportCount">
+              <option value="0">All</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="250">250</option>
+              <option value="500">500</option>
+              <option value="1000">1000</option>
+              <option value="custom">Custom</option>
+            </select>
+            <input type="number" id="customExportCount" placeholder="#" min="1" style="display:none; width:60px;">
+            <span class="export-preview">→ <span id="exportPreviewCount">0</span> records</span>
+            <div class="export-options">
+              <label class="export-option"><input type="checkbox" id="skipExported" checked> Skip mailed</label>
+              <label class="export-option"><input type="checkbox" id="includeRecycle"> +Recyclable</label>
+              <select id="recycleDays" style="width:70px;">
+                <option value="14">14 days</option>
+                <option value="21">21 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="45">45 days</option>
+                <option value="60">60 days</option>
+                <option value="90">90 days</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Action Bar -->
+          <div class="action-bar">
+            <button class="btn btn-success" onclick="downloadCSV()">Export CSV</button>
+            <button class="btn btn-primary" onclick="downloadAllCSV()">Export All</button>
+            <button class="btn" style="background:#065f46; color:#6ee7b7;" onclick="exportRecyclable()">Recyclable Only</button>
+            <button class="btn btn-secondary" onclick="copyCSV()">Copy</button>
+            <button class="btn" style="background:#7c3aed; color:white;" onclick="exportLabels()">Labels</button>
+            <button class="btn" style="background:#0891b2; color:white;" onclick="sortByRoute()">Sort Route</button>
+            <button class="btn btn-secondary" onclick="addToMerge()">Add to Merge</button>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <input type="text" class="search-input" id="searchInput" placeholder="Search..." oninput="filterTable()">
+            <div class="filter-chips">
+              <span class="chip active" onclick="setFilter('all')">All</span>
+              <span class="chip" onclick="setFilter('residential')">Residential</span>
+              <span class="chip orange" onclick="setFilter('business')">Business</span>
+              <span class="chip red" onclick="setFilter('absentee')">Absentee</span>
+              <span class="chip green" onclick="setFilter('owner')">Owner</span>
+            </div>
+          </div>
+
+          <!-- Location Summary -->
+          <div class="location-bar" id="exportSummary" style="display:none;">
+            <h5>Quick Filter by Location</h5>
+            <div id="citySummary" class="location-chips" style="margin-bottom:6px;"></div>
+            <div id="zipSummary" class="location-chips"></div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:50px;">Act</th>
+                  <th class="sortable" onclick="sortTable('recipient')">Recipient <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('address')">Address <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('city')">City <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('zipcode')">Zip <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('propertyValue')">Value <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('poolAge')">Age <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('isAbsentee')">Type <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('mailCount')" style="width:45px;">📬 <span class="sort-icon">↕</span></th>
+                  <th style="width:120px;">Notes</th>
+                </tr>
+              </thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+          <div id="tableInfo" style="padding:8px 16px; font-size:11px; color:var(--text-dim);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mailed Tab -->
+  <div id="tab-mailed" class="secondary-panel">
+    <div style="max-width:1000px; margin:0 auto; padding:20px;">
+      <div class="panel-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3>📬 Mailed Address Tracker</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="exportMailedList()">Export</button>
+            <button class="btn btn-secondary btn-sm" onclick="importMailedList()">Import</button>
+            <button class="btn btn-sm" style="background:var(--red); color:white;" onclick="clearMailedList()">Clear</button>
+          </div>
+        </div>
+        <div id="mailedCount" style="font-size:12px; color:var(--text-dim); margin-bottom:12px;">0 addresses tracked</div>
+        <div id="mailedListPreview"></div>
+        <input type="file" id="mailedFileInput" accept=".txt,.csv" onchange="handleMailedFile(this)" style="display:none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div id="tab-history" class="secondary-panel">
+    <div style="max-width:800px; margin:0 auto; padding:20px;">
+      <div class="panel-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3>📊 Export History</h3>
+          <button class="btn btn-sm" style="background:var(--red); color:white;" onclick="clearHistory()">Clear</button>
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Merge Tab -->
+  <div id="tab-merge" class="secondary-panel">
+    <div style="max-width:800px; margin:0 auto; padding:20px;">
+      <div class="panel-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3>🔀 Merge Exports</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-success btn-sm" onclick="downloadMerged()">Download Merged</button>
+            <button class="btn btn-sm" style="background:var(--red); color:white;" onclick="clearMerge()">Clear</button>
+          </div>
+        </div>
+        <div id="mergeFiles"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Tab -->
+  <div id="tab-settings" class="secondary-panel">
+    <div style="max-width:800px; margin:0 auto; padding:20px;">
+      <!-- Exclude List -->
+      <div class="panel-card">
+        <h3 style="margin-bottom:12px;">🚫 Exclude List</h3>
+        <p style="font-size:11px; color:var(--text-dim); margin-bottom:12px;">Addresses containing these will be removed</p>
+        <textarea id="excludeList" rows="4" style="width:100%; padding:8px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-size:12px; resize:vertical;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="btn btn-primary btn-sm" onclick="saveExcludeList()">Save</button>
+          <span id="excludeCount" style="font-size:11px; color:var(--text-dim); align-self:center;">0 addresses</span>
+        </div>
+      </div>
+
+      <!-- Saved Presets -->
+      <div class="panel-card">
+        <h3 style="margin-bottom:12px;">💾 Saved Presets</h3>
+        <div id="savedPresets"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Tab -->
+  <div id="tab-help" class="secondary-panel">
+    <div style="max-width:900px; margin:0 auto; padding:20px;">
+      <div class="panel-card">
+        <h3 style="margin-bottom:16px;">❓ How to Use Pool Scraper Pro</h3>
+        <div style="font-size:12px; line-height:1.6; color:var(--text-dim);">
+          <h4 style="color:var(--text); margin:16px 0 8px;">1. Upload Data</h4>
+          <p>Drag & drop or click to upload county parcel CSV/TXT files. Auto-detects Seminole and Orange County formats.</p>
+
+          <h4 style="color:var(--text); margin:16px 0 8px;">2. Configure Filters</h4>
+          <p>Set location filters (state, cities, zips), property value ranges, year built, pool age, and property types.</p>
+
+          <h4 style="color:var(--text); margin:16px 0 8px;">3. Process & Export</h4>
+          <p>Click Process to filter data. Use export controls to download specific counts or filter by location.</p>
+
+          <h4 style="color:var(--text); margin:16px 0 8px;">4. Mailing Tracker</h4>
+          <p>Track how many times each address has been mailed. Addresses are marked 1x, 2x, 3x... up to 7x (the magic number!). Use "Recyclable" to re-mail addresses after 30+ days.</p>
+
+          <h4 style="color:var(--text); margin:16px 0 8px;">Export Options</h4>
+          <ul style="margin-left:20px;">
+            <li><strong>Export CSV</strong> - Download filtered records with selected count</li>
+            <li><strong>Export All</strong> - Download all processed records</li>
+            <li><strong>Recyclable Only</strong> - Only addresses ready for re-mailing</li>
+            <li><strong>Labels</strong> - Avery 5160 format for printing</li>
+            <li><strong>Sort Route</strong> - Sort by Zip → City → Street for efficient delivery</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit Record</h3>
+        <button class="modal-close" onclick="closeEditModal()">&times;</button>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;"><label>Recipient</label><input type="text" id="editRecipient"></div>
+      <div class="form-group" style="margin-bottom:10px;"><label>Company</label><input type="text" id="editCompany"></div>
+      <div class="form-group" style="margin-bottom:10px;"><label>Address</label><input type="text" id="editAddress"></div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <div class="form-group"><label>City</label><input type="text" id="editCity"></div>
+        <div class="form-group"><label>State</label><input type="text" id="editState"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px;"><label>Zipcode</label><input type="text" id="editZipcode"></div>
+      <button class="btn btn-primary btn-lg" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" style="display:none;"></div>
+
+<script>
+    // State variables
+    let fileContent = null;
+    let parsedRows = [];
+    let headers = [];
+    let results = [];
+    let filteredResults = [];
+    let mergeData = [];
+    let currentFilter = 'all';
+    let editingIndex = -1;
+    let currentZipFilter = null;
+    let currentCityFilter = null;
+    let detectedDelimiter = ',';
+
+    let excludeAddresses = JSON.parse(localStorage.getItem('poolscraper_exclude') || '[]');
+    let exportHistory = JSON.parse(localStorage.getItem('poolscraper_history') || '[]');
+    let savedPresets = JSON.parse(localStorage.getItem('poolscraper_presets') || '{}');
+
+    // Mailed tracking with counts and dates
+    let mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}');
+
+    // Migrate old format
+    const oldMailed = JSON.parse(localStorage.getItem('poolscraper_mailed') || '[]');
+    if (oldMailed.length > 0 && Object.keys(mailedTracker).length === 0) {
+      const today = new Date().toISOString().slice(0, 10);
+      oldMailed.forEach(addr => {
+        mailedTracker[addr.toUpperCase()] = { count: 1, firstMailed: today, lastMailed: today };
+      });
+      localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+      localStorage.removeItem('poolscraper_mailed');
+    }
+
+    let mailedAddresses = Object.keys(mailedTracker);
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const processBtn = document.getElementById('processBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const resultsSection = document.getElementById('resultsSection');
+    const tableBody = document.getElementById('tableBody');
+    const emptyState = document.getElementById('emptyState');
+
+    // City lookup
+    const cityLookup = {
+      'LONGWOOD': { state: 'FL', zip: '32750', normalize: 'Longwood' },
+      'LAKE MARY': { state: 'FL', zip: '32746', normalize: 'Lake Mary' },
+      'SANFORD': { state: 'FL', zip: '32771', normalize: 'Sanford' },
+      'OVIEDO': { state: 'FL', zip: '32765', normalize: 'Oviedo' },
+      'WINTER SPRINGS': { state: 'FL', zip: '32708', normalize: 'Winter Springs' },
+      'WINTER SPGS': { state: 'FL', zip: '32708', normalize: 'Winter Springs' },
+      'WINTER SPG': { state: 'FL', zip: '32708', normalize: 'Winter Springs' },
+      'ALTAMONTE SPRINGS': { state: 'FL', zip: '32701', normalize: 'Altamonte Springs' },
+      'ALTAMONTE SPGS': { state: 'FL', zip: '32701', normalize: 'Altamonte Springs' },
+      'ALTAMONTE SPG': { state: 'FL', zip: '32701', normalize: 'Altamonte Springs' },
+      'ALTAMONTE': { state: 'FL', zip: '32701', normalize: 'Altamonte Springs' },
+      'CASSELBERRY': { state: 'FL', zip: '32707', normalize: 'Casselberry' },
+      'ORLANDO': { state: 'FL', zip: '32801', normalize: 'Orlando' },
+      'APOPKA': { state: 'FL', zip: '32703', normalize: 'Apopka' },
+      'MAITLAND': { state: 'FL', zip: '32751', normalize: 'Maitland' },
+      'WINTER PARK': { state: 'FL', zip: '32789', normalize: 'Winter Park' },
+      'WINTER PK': { state: 'FL', zip: '32789', normalize: 'Winter Park' },
+      'GENEVA': { state: 'FL', zip: '32732', normalize: 'Geneva' },
+      'CHULUOTA': { state: 'FL', zip: '32766', normalize: 'Chuluota' },
+      'FERN PARK': { state: 'FL', zip: '32730', normalize: 'Fern Park' },
+      'FOREST CITY': { state: 'FL', zip: '32714', normalize: 'Forest City' },
+      'HEATHROW': { state: 'FL', zip: '32746', normalize: 'Heathrow' },
+      'WEKIVA SPRINGS': { state: 'FL', zip: '32779', normalize: 'Wekiva Springs' },
+      'DELTONA': { state: 'FL', zip: '32725', normalize: 'Deltona' },
+      'DEBARY': { state: 'FL', zip: '32713', normalize: 'DeBary' },
+      'BELLE ISLE': { state: 'FL', zip: '32812', normalize: 'Belle Isle' },
+      'KISSIMMEE': { state: 'FL', zip: '34741', normalize: 'Kissimmee' },
+      'CLERMONT': { state: 'FL', zip: '34711', normalize: 'Clermont' },
+      'WINDERMERE': { state: 'FL', zip: '34786', normalize: 'Windermere' },
+      'LAKE BUENA VISTA': { state: 'FL', zip: '32830', normalize: 'Lake Buena Vista' },
+      'CELEBRATION': { state: 'FL', zip: '34747', normalize: 'Celebration' },
+      'DAVENPORT': { state: 'FL', zip: '33837', normalize: 'Davenport' },
+      'SAINT CLOUD': { state: 'FL', zip: '34769', normalize: 'Saint Cloud' },
+      'ST CLOUD': { state: 'FL', zip: '34769', normalize: 'Saint Cloud' },
+      'JACKSONVILLE': { state: 'FL', zip: '32099', normalize: 'Jacksonville' },
+      'TAMPA': { state: 'FL', zip: '33601', normalize: 'Tampa' },
+      'MIAMI': { state: 'FL', zip: '33101', normalize: 'Miami' },
+      'FORT LAUDERDALE': { state: 'FL', zip: '33301', normalize: 'Fort Lauderdale' },
+      'FT LAUDERDALE': { state: 'FL', zip: '33301', normalize: 'Fort Lauderdale' },
+      'WEST PALM BEACH': { state: 'FL', zip: '33401', normalize: 'West Palm Beach' },
+      'PALM BEACH': { state: 'FL', zip: '33480', normalize: 'Palm Beach' },
+      'BOCA RATON': { state: 'FL', zip: '33427', normalize: 'Boca Raton' },
+      'SARASOTA': { state: 'FL', zip: '34230', normalize: 'Sarasota' },
+      'NAPLES': { state: 'FL', zip: '34101', normalize: 'Naples' },
+      'GAINESVILLE': { state: 'FL', zip: '32601', normalize: 'Gainesville' },
+      'OCALA': { state: 'FL', zip: '34470', normalize: 'Ocala' },
+      'DAYTONA BEACH': { state: 'FL', zip: '32114', normalize: 'Daytona Beach' },
+      'PORT ORANGE': { state: 'FL', zip: '32127', normalize: 'Port Orange' },
+      'NEW SMYRNA BEACH': { state: 'FL', zip: '32168', normalize: 'New Smyrna Beach' }
+    };
+    const knownCities = Object.keys(cityLookup).sort((a, b) => b.length - a.length);
+
+    // State abbreviations
+    const stateMap = {
+      'FLORIDA': 'FL', 'GEORGIA': 'GA', 'ALABAMA': 'AL', 'CALIFORNIA': 'CA',
+      'NEW YORK': 'NY', 'TEXAS': 'TX', 'NORTH CAROLINA': 'NC', 'SOUTH CAROLINA': 'SC',
+      'VIRGINIA': 'VA', 'TENNESSEE': 'TN', 'OHIO': 'OH', 'MICHIGAN': 'MI',
+      'PENNSYLVANIA': 'PA', 'ILLINOIS': 'IL', 'NEW JERSEY': 'NJ', 'MARYLAND': 'MD'
+    };
+
+    // Initialize
+    document.getElementById('excludeList').value = excludeAddresses.join('\n');
+    document.getElementById('excludeCount').textContent = `${excludeAddresses.length} addresses`;
+    renderHistory();
+    renderSavedPresets();
+    renderMergeFiles();
+    renderMailedList();
+    updateMailedBadge();
+
+    // Tab switching
+    function showTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.secondary-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    // Section toggle
+    function toggleSection(el) {
+      el.parentElement.classList.toggle('collapsed');
+    }
+
+    // Toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    // File handling
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    function handleFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        fileContent = e.target.result;
+        dropZone.classList.add('has-file');
+        fileInfo.innerHTML = `<strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+        parseFile();
+      };
+      reader.readAsText(file);
+    }
+
+    function parseFile() {
+      if (!fileContent) return;
+      const lines = fileContent.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length === 0) return;
+
+      // Detect delimiter
+      const firstLine = lines[0];
+      if (firstLine.includes('~')) detectedDelimiter = '~';
+      else if (firstLine.includes('\t')) detectedDelimiter = '\t';
+      else detectedDelimiter = ',';
+
+      headers = parseCSVLine(lines[0], detectedDelimiter);
+      parsedRows = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseCSVLine(lines[i], detectedDelimiter);
+        if (row.length > 0) parsedRows.push(row);
+      }
+
+      // First populate the dropdowns
+      populateMappers();
+
+      // Then auto-detect format and map columns
+      let detectedFormat = 'Unknown';
+      const headerUpper = headers.map(h => h.toUpperCase());
+
+      // Detect Orange County NAL format (has OWN_NAME, CO_NO, PARCEL_ID columns)
+      if (headerUpper.includes('OWN_NAME') && headerUpper.includes('CO_NO')) {
+        detectedFormat = 'Orange County NAL';
+        autoMapOrangeNAL();
+      }
+      // Detect Seminole County format (has Pool column)
+      else if (headers.some(h => h.toUpperCase().includes('POOL'))) {
+        detectedFormat = 'Seminole Parcels';
+        autoMapSeminole();
+      }
+      // Detect old Orange County tilde-delimited format
+      else if (detectedDelimiter === '~' && headers.length > 30) {
+        detectedFormat = 'Orange County';
+        autoMapOrangeCounty();
+      }
+
+      document.getElementById('detectedInfo').innerHTML = `<strong>Format:</strong> ${detectedFormat} | <strong>Rows:</strong> ${parsedRows.length.toLocaleString()} | <strong>Cols:</strong> ${headers.length}`;
+      document.getElementById('detectedInfo').style.display = 'block';
+
+      document.getElementById('mapperSection').style.display = 'block';
+      processBtn.disabled = false;
+      updateSamplePreview();
+    }
+
+    function parseCSVLine(line, delimiter) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') inQuotes = !inQuotes;
+        else if (char === delimiter && !inQuotes) { result.push(current.trim()); current = ''; }
+        else current += char;
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    function populateMappers() {
+      const selects = ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapFilter', 'mapFilterZip', 'mapValue', 'mapYearBuilt', 'mapPropAddress', 'mapPropType', 'mapAssessedValue'];
+      selects.forEach(id => {
+        const select = document.getElementById(id);
+        const val = select.value;
+        select.innerHTML = '<option value="-1">--</option>';
+        headers.forEach((h, i) => {
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = h.substring(0, 25);
+          select.appendChild(opt);
+        });
+        select.value = val;
+      });
+    }
+
+    function autoMapSeminole() {
+      // Map column names to their index
+      const colMap = {};
+      headers.forEach((h, i) => { colMap[h.toUpperCase().replace(/[^A-Z]/g, '')] = i; });
+
+      // Direct mappings for Seminole County format
+      const mappings = {
+        mapName: ['OWNERNAME', 'OWNNAME'],
+        mapAddress1: ['MAILINGADDRESS', 'MAILADDRESS'],
+        mapPropAddress: ['PRIMARYADDRESS', 'SITEADDRESS'],
+        mapPropType: ['DORCODE', 'DOR'],
+        mapYearBuilt: ['YEARBUILT', 'YRBUILT'],
+        mapValue: ['TOTALJUSTVALUE', 'JUSTVALUE', 'TOTALVALUE'],
+        mapAssessedValue: ['ASSESSEDVALUE', 'ASSESSED'],
+        mapFilter: ['POOL', 'HASPOOL']
+      };
+
+      for (const [selectId, searches] of Object.entries(mappings)) {
+        const el = document.getElementById(selectId);
+        if (!el) continue;
+        for (const search of searches) {
+          if (colMap[search] !== undefined) {
+            el.value = String(colMap[search]);
+            break;
+          }
+        }
+      }
+    }
+
+    function autoMapOrangeCounty() {
+      const indices = { mapName: 21, mapAddress1: 22, mapCity: 23, mapState: 24, mapZip: 25, mapFilter: 39, mapFilterZip: 10, mapValue: 18, mapYearBuilt: 14, mapPropAddress: 4 };
+      Object.entries(indices).forEach(([id, idx]) => {
+        if (idx < headers.length) document.getElementById(id).value = idx;
+      });
+    }
+
+    function autoMapOrangeNAL() {
+      // Map column names to their index for Orange County NAL format
+      const colMap = {};
+      headers.forEach((h, i) => { colMap[h.toUpperCase()] = i; });
+
+      // Direct mappings for Orange County NAL format
+      const mappings = {
+        mapName: ['OWN_NAME'],
+        mapAddress1: ['OWN_ADDR1'],
+        mapAddress2: ['OWN_ADDR2'],
+        mapCity: ['OWN_CITY'],
+        mapState: ['OWN_STATE'],
+        mapZip: ['OWN_ZIPCD'],
+        mapPropAddress: ['PHY_ADDR1'],
+        mapFilterZip: ['PHY_ZIPCD'],
+        mapPropType: ['DOR_UC', 'PA_UC'],
+        mapYearBuilt: ['ACT_YR_BLT', 'EFF_YR_BLT'],
+        mapValue: ['JV', 'TV_SD'],
+        mapAssessedValue: ['AV_SD', 'AV_NSD'],
+        mapFilter: ['S_LEGAL']  // Pool keywords will be searched in legal description
+      };
+
+      for (const [selectId, searches] of Object.entries(mappings)) {
+        const el = document.getElementById(selectId);
+        if (!el) continue;
+        for (const search of searches) {
+          if (colMap[search] !== undefined) {
+            el.value = String(colMap[search]);
+            break;
+          }
+        }
+      }
+    }
+
+    function updateSamplePreview() {
+      const nameIdx = parseInt(document.getElementById('mapName').value);
+      const addr1Idx = parseInt(document.getElementById('mapAddress1').value);
+      const cityIdx = parseInt(document.getElementById('mapCity').value);
+      const stateIdx = parseInt(document.getElementById('mapState').value);
+      const zipIdx = parseInt(document.getElementById('mapZip').value);
+      const valueIdx = parseInt(document.getElementById('mapValue').value);
+      const yearIdx = parseInt(document.getElementById('mapYearBuilt').value);
+
+      const samples = [];
+      const startIdx = parsedRows.length > 0 && parsedRows[0].every(c => c === '') ? 1 : 0;
+
+      for (let i = startIdx; i < parsedRows.length && samples.length < 5; i++) {
+        const row = parsedRows[i];
+        if (!row || row.length < 3) continue;
+        const name = nameIdx >= 0 ? (row[nameIdx] || '') : '';
+        const addr = addr1Idx >= 0 ? (row[addr1Idx] || '') : '';
+        if (!name && !addr) continue;
+        samples.push({
+          name: toTitleCase(name.replace(/"/g, '').trim()),
+          address: toTitleCase(addr),
+          city: toTitleCase(cityIdx >= 0 ? (row[cityIdx] || '') : ''),
+          state: (stateIdx >= 0 ? (row[stateIdx] || '') : '').toUpperCase(),
+          zip: (zipIdx >= 0 ? (row[zipIdx] || '') : '').substring(0, 5),
+          value: valueIdx >= 0 ? (row[valueIdx] || '') : '',
+          year: yearIdx >= 0 ? (row[yearIdx] || '') : ''
+        });
+      }
+
+      const tbody = document.getElementById('samplePreviewBody');
+      if (samples.length > 0) {
+        tbody.innerHTML = samples.map(s => `<tr><td>${s.name}</td><td>${s.address}</td><td>${s.city}</td><td>${s.state}</td><td>${s.zip}</td><td>${s.value}</td><td>${s.year}</td></tr>`).join('');
+        document.getElementById('samplePreviewCard').style.display = 'block';
+      } else {
+        document.getElementById('samplePreviewCard').style.display = 'none';
+      }
+    }
+
+    // Add change listeners for mappers
+    ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapValue', 'mapYearBuilt'].forEach(id => {
+      document.getElementById(id).addEventListener('change', updateSamplePreview);
+    });
+
+    // Preset functions
+    function saveCurrentPreset() {
+      const name = document.getElementById('presetName').value.trim();
+      if (!name) { showToast('Enter a preset name'); return; }
+      const preset = {};
+      ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapFilter', 'mapFilterZip', 'mapValue', 'mapYearBuilt', 'mapPropAddress', 'mapPropType', 'mapAssessedValue'].forEach(id => {
+        preset[id] = document.getElementById(id).value;
+      });
+      savedPresets[name] = preset;
+      localStorage.setItem('poolscraper_presets', JSON.stringify(savedPresets));
+      renderSavedPresets();
+      showToast('Preset saved');
+    }
+
+    function loadPreset(name) {
+      const preset = savedPresets[name];
+      if (!preset) return;
+      Object.entries(preset).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el && val !== undefined) el.value = val;
+      });
+      updateSamplePreview();
+      showToast('Preset loaded');
+    }
+
+    function deletePreset(name) {
+      delete savedPresets[name];
+      localStorage.setItem('poolscraper_presets', JSON.stringify(savedPresets));
+      renderSavedPresets();
+      showToast('Preset deleted');
+    }
+
+    function renderSavedPresets() {
+      const container = document.getElementById('savedPresets');
+      const keys = Object.keys(savedPresets);
+      if (keys.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-dim); font-size:12px;">No saved presets</p>';
+        return;
+      }
+      container.innerHTML = keys.map(name => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:var(--bg); border-radius:4px; margin-bottom:6px;">
+          <span style="font-size:12px;">${name}</span>
+          <div style="display:flex; gap:4px;">
+            <button class="btn btn-sm btn-primary" onclick="loadPreset('${name}')">Load</button>
+            <button class="btn btn-sm" style="background:var(--red); color:white;" onclick="deletePreset('${name}')">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Export count controls
+    document.getElementById('exportCount').addEventListener('change', function() {
+      const customInput = document.getElementById('customExportCount');
+      if (this.value === 'custom') { customInput.style.display = 'inline-block'; customInput.focus(); }
+      else customInput.style.display = 'none';
+      updateExportPreview();
+    });
+
+    document.getElementById('customExportCount').addEventListener('input', updateExportPreview);
+    document.getElementById('skipExported').addEventListener('change', updateExportPreview);
+    document.getElementById('includeRecycle').addEventListener('change', updateExportPreview);
+    document.getElementById('recycleDays').addEventListener('change', function() {
+      updateExportPreview();
+      renderMailedList();
+    });
+
+    // Process file
+    processBtn.addEventListener('click', processFile);
+
+    async function processFile() {
+      if (parsedRows.length === 0) return;
+
+      const nameIdx = parseInt(document.getElementById('mapName').value);
+      const addr1Idx = parseInt(document.getElementById('mapAddress1').value);
+      const addr2Idx = parseInt(document.getElementById('mapAddress2').value);
+      const cityIdx = parseInt(document.getElementById('mapCity').value);
+      const stateIdx = parseInt(document.getElementById('mapState').value);
+      const zipIdx = parseInt(document.getElementById('mapZip').value);
+      const filterIdx = parseInt(document.getElementById('mapFilter').value);
+      const filterZipIdx = parseInt(document.getElementById('mapFilterZip').value);
+      const valueIdx = parseInt(document.getElementById('mapValue').value);
+      const yearIdx = parseInt(document.getElementById('mapYearBuilt').value);
+      const propAddrIdx = parseInt(document.getElementById('mapPropAddress').value);
+      const propTypeIdx = parseInt(document.getElementById('mapPropType').value);
+      const assessedIdx = parseInt(document.getElementById('mapAssessedValue').value);
+
+      const targetState = document.getElementById('targetState').value.toUpperCase().trim();
+      const targetCities = document.getElementById('targetCities').value.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
+      const targetZips = document.getElementById('targetZips').value.split(',').map(z => z.trim()).filter(z => z);
+
+      const minValue = parseInt(document.getElementById('minValue').value) || 0;
+      const maxValue = parseInt(document.getElementById('maxValue').value) || Infinity;
+      const minYear = parseInt(document.getElementById('minYear').value) || 0;
+      const maxYear = parseInt(document.getElementById('maxYear').value) || 9999;
+      const minPoolAge = parseInt(document.getElementById('minPoolAge').value) || 0;
+      const maxPoolAge = parseInt(document.getElementById('maxPoolAge').value) || 999;
+      const minAssessed = parseInt(document.getElementById('minAssessed').value) || 0;
+      const maxAssessed = parseInt(document.getElementById('maxAssessed').value) || Infinity;
+
+      // Built-in filters (always enabled)
+      const removePOBox = true;
+      const removeSuite = true;
+      const removeOutOfState = true;
+      const removeBiz = document.getElementById('removeBiz').checked;
+      const standardize = true; // Always standardize addresses
+      const uppercase = document.getElementById('uppercase').checked;
+      const absenteeOnly = document.getElementById('absenteeOnly').checked;
+      const skipMailed = false; // Handled in export controls instead
+
+      const allowSFR = document.getElementById('allowSFR').checked;
+      const allowCondo = document.getElementById('allowCondo').checked;
+      const allowMulti = document.getElementById('allowMulti').checked;
+      const allowVacant = document.getElementById('allowVacant').checked;
+      const allowOther = document.getElementById('allowOther').checked;
+
+      const currentYear = new Date().getFullYear();
+      const mailedSet = new Set(mailedAddresses.map(a => a.toUpperCase()));
+
+      results = [];
+      let dupeCount = 0, bizCount = 0, excludedCount = 0, mailedSkipped = 0;
+      const seen = new Set();
+
+      progressContainer.style.display = 'block';
+      progressFill.style.width = '0%';
+
+      const startIdx = parsedRows.length > 0 && parsedRows[0].every(c => c === '') ? 1 : 0;
+      const total = parsedRows.length - startIdx;
+
+      for (let i = startIdx; i < parsedRows.length; i++) {
+        if (i % 1000 === 0) {
+          progressFill.style.width = `${((i - startIdx) / total * 100).toFixed(0)}%`;
+          progressText.textContent = `Processing ${i.toLocaleString()} of ${parsedRows.length.toLocaleString()}...`;
+          await new Promise(r => setTimeout(r, 0));
+        }
+
+        const row = parsedRows[i];
+        if (!row || row.length < 3) continue;
+
+        // Filter column check
+        if (filterIdx >= 0) {
+          const filterVal = (row[filterIdx] || '').toUpperCase();
+          // Accept: TRUE/YES/1 (boolean), or contains POOL/PLSC (keyword)
+          const isTrue = filterVal === 'TRUE' || filterVal === 'YES' || filterVal === '1';
+          const hasKeyword = filterVal.includes('POOL') || filterVal.includes('PLSC');
+          if (!isTrue && !hasKeyword) continue;
+        }
+
+        // Target zips check
+        if (filterZipIdx >= 0 && targetZips.length > 0) {
+          const propZip = (row[filterZipIdx] || '').substring(0, 5);
+          if (!targetZips.includes(propZip)) continue;
+        }
+
+        // Property value check
+        if (valueIdx >= 0 && (minValue > 0 || maxValue < Infinity)) {
+          const propValue = parseInt((row[valueIdx] || '0').replace(/[^0-9]/g, '')) || 0;
+          if (propValue < minValue || propValue > maxValue) continue;
+        }
+
+        // Year built check
+        if (yearIdx >= 0 && (minYear > 0 || maxYear < 9999)) {
+          const yearBuilt = parseInt((row[yearIdx] || '0').replace(/[^0-9]/g, '')) || 0;
+          if (yearBuilt < minYear || yearBuilt > maxYear) continue;
+        }
+
+        // Pool age check
+        const minPoolAgeSet = document.getElementById('minPoolAge').value !== '';
+        const maxPoolAgeSet = document.getElementById('maxPoolAge').value !== '';
+        if (yearIdx >= 0 && (minPoolAgeSet || maxPoolAgeSet)) {
+          const yearBuilt = parseInt((row[yearIdx] || '0').replace(/[^0-9]/g, '')) || 0;
+          if (yearBuilt > 1800) {
+            const poolAge = currentYear - yearBuilt;
+            if (poolAge < minPoolAge || poolAge > maxPoolAge) continue;
+          }
+        }
+
+        // Assessed value check
+        if (assessedIdx >= 0 && (minAssessed > 0 || maxAssessed < Infinity)) {
+          const assessedValue = parseInt((row[assessedIdx] || '0').replace(/[^0-9]/g, '')) || 0;
+          if (assessedValue < minAssessed || assessedValue > maxAssessed) continue;
+        }
+
+        // Property type check
+        if (propTypeIdx >= 0) {
+          const propType = (row[propTypeIdx] || '').toUpperCase();
+          const isSFR = propType.includes('SINGLE') || propType.includes('SFR') || propType === '01' || propType === '1';
+          const isCondo = propType.includes('CONDO') || propType === '04' || propType === '4';
+          const isMulti = propType.includes('MULTI') || propType.includes('DUPLEX') || propType === '02' || propType === '2';
+          const isVacant = propType.includes('VACANT') || propType === '00' || propType === '0';
+          if (isSFR && !allowSFR) continue;
+          if (isCondo && !allowCondo) continue;
+          if (isMulti && !allowMulti) continue;
+          if (isVacant && !allowVacant) continue;
+          if (!isSFR && !isCondo && !isMulti && !isVacant && !allowOther) continue;
+        }
+
+        let name = nameIdx >= 0 ? (row[nameIdx] || '') : '';
+        let address1 = addr1Idx >= 0 ? (row[addr1Idx] || '') : '';
+        let address2 = addr2Idx >= 0 ? (row[addr2Idx] || '') : '';
+        let city = cityIdx >= 0 ? (row[cityIdx] || '').trim() : '';
+        let state = stateIdx >= 0 ? (row[stateIdx] || '').trim() : '';
+        let zip = zipIdx >= 0 ? (row[zipIdx] || '').trim() : '';
+
+        name = name.replace(/"/g, '').trim();
+        address1 = address1.replace(/"/g, '').trim();
+        address2 = address2.replace(/"/g, '').trim();
+
+        if (!address1) continue;
+
+        const isPOBox = /^P\.?O\.?\s*BOX|POST\s*OFFICE/i.test(address1);
+        if (isPOBox && removePOBox) { excludedCount++; continue; }
+
+        const hasSuiteUnit = /\b(STE|SUITE|UNIT|APT)\s*[\dA-Z-]+/i.test(address1) || /\b(STE|SUITE|UNIT|APT)\s*[\dA-Z-]+/i.test(address2) || /#\s*\d+/i.test(address1) || /#\s*\d+/i.test(address2);
+        if (hasSuiteUnit && removeSuite) { excludedCount++; continue; }
+
+        address1 = fixStuckCityName(address1);
+
+        if (!city || cityIdx < 0) {
+          const parsed = parseFullAddress(address1);
+          address1 = parsed.street;
+          if (!city) city = parsed.city;
+          if (!state) state = parsed.state;
+          if (!zip) zip = parsed.zip;
+        }
+
+        if (!city) {
+          const addrUpper = address1.toUpperCase();
+          for (const cityName of knownCities) {
+            const cityPattern = new RegExp('\\b' + cityName.replace(/\s+/g, '\\s+') + '\\b', 'i');
+            if (cityPattern.test(addrUpper)) {
+              const lookup = cityLookup[cityName];
+              city = (lookup && lookup.normalize) ? lookup.normalize : cityName;
+              address1 = address1.replace(cityPattern, '').replace(/\s+/g, ' ').trim();
+              if (lookup) {
+                if (!state) state = lookup.state;
+                if (!zip) zip = lookup.zip;
+              }
+              break;
+            }
+          }
+        }
+
+        if (isForeignAddress(address1, city)) { excludedCount++; continue; }
+
+        let fullAddress = address1;
+        if (address2) fullAddress += ' ' + address2;
+
+        state = normalizeState(state);
+
+        if (state && targetState && state !== targetState && removeOutOfState) { excludedCount++; continue; }
+
+        if (city && !isValidCity(city)) { excludedCount++; continue; }
+
+        if (targetCities.length > 0 && !targetCities.includes(city.toUpperCase())) continue;
+
+        zip = zip.replace(/[^\d-]/g, '').substring(0, 10);
+        if (zip.length > 5 && !zip.includes('-')) zip = zip.substring(0, 5) + '-' + zip.substring(5);
+
+        const formatted = formatName(name);
+        const isBusiness = isBusinessName(formatted.company || formatted.recipient);
+        if (isBusiness) bizCount++;
+
+        if (removeBiz && isBusiness) { excludedCount++; continue; }
+
+        // Clean up city name (remove garbage prefixes, expand abbreviations)
+        city = cleanupCity(city);
+
+        if (standardize) {
+          fullAddress = standardizeAddress(fullAddress);
+          city = standardizeAddress(city);
+        }
+
+        if (!uppercase) {
+          formatted.recipient = toTitleCase(formatted.recipient);
+          formatted.company = toTitleCase(formatted.company);
+          fullAddress = toTitleCase(fullAddress);
+          city = toTitleCase(city);
+        } else {
+          formatted.recipient = formatted.recipient.toUpperCase();
+          formatted.company = formatted.company.toUpperCase();
+          fullAddress = fullAddress.toUpperCase();
+          city = city.toUpperCase();
+        }
+
+        const key = `${fullAddress}|${city}|${zip}`.toUpperCase();
+        if (seen.has(key)) { dupeCount++; continue; }
+        seen.add(key);
+
+        if (skipMailed && mailedSet.has(key)) { mailedSkipped++; continue; }
+
+        if (excludeAddresses.some(ex => fullAddress.toUpperCase().includes(ex.toUpperCase()))) { excludedCount++; continue; }
+
+        const flags = [];
+        if (isBusiness) flags.push('BIZ');
+
+        let propValue = '';
+        let yearBuilt = '';
+        let poolAge = '';
+        if (valueIdx >= 0) {
+          propValue = (row[valueIdx] || '').replace(/[^0-9.]/g, '');
+          if (propValue) propValue = '$' + parseInt(propValue).toLocaleString();
+        }
+        if (yearIdx >= 0) {
+          yearBuilt = (row[yearIdx] || '').replace(/[^0-9]/g, '');
+          if (yearBuilt && parseInt(yearBuilt) > 1800) {
+            poolAge = currentYear - parseInt(yearBuilt);
+          }
+        }
+
+        let propType = '';
+        if (propTypeIdx >= 0) {
+          propType = (row[propTypeIdx] || '').trim();
+          if (!uppercase) propType = toTitleCase(propType);
+        }
+
+        let assessedValue = '';
+        if (assessedIdx >= 0) {
+          assessedValue = (row[assessedIdx] || '').replace(/[^0-9.]/g, '');
+          if (assessedValue) assessedValue = '$' + parseInt(assessedValue).toLocaleString();
+        }
+
+        let isAbsentee = false;
+        let propAddress = '';
+        if (propAddrIdx >= 0) {
+          propAddress = (row[propAddrIdx] || '').trim();
+          if (propAddress) {
+            const mailNorm = fullAddress.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const propNorm = propAddress.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            isAbsentee = mailNorm.substring(0, 15) !== propNorm.substring(0, 15);
+          }
+        }
+
+        if (absenteeOnly && propAddrIdx >= 0 && !isAbsentee) continue;
+
+        if (isAbsentee) flags.push('ABSENTEE');
+
+        results.push({
+          recipient: formatted.recipient,
+          company: formatted.company,
+          address: fullAddress,
+          city: city,
+          state: state || targetState,
+          zipcode: zip,
+          propertyValue: propValue,
+          yearBuilt: yearBuilt,
+          poolAge: poolAge,
+          propertyType: propType,
+          assessedValue: assessedValue,
+          propertyAddress: propAddress,
+          isAbsentee: isAbsentee,
+          flags: flags,
+          notes: ''
+        });
+      }
+
+      progressFill.style.width = '100%';
+      progressText.textContent = 'Complete!';
+
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+        showResults({ total, matches: results.length, dupes: dupeCount, biz: bizCount, excluded: excludedCount });
+        processBtn.disabled = false;
+      }, 500);
+    }
+
+    // Helper functions
+    function fixStuckCityName(addr) {
+      const patterns = [
+        { pattern: /\b(DR|ST|AVE|LN|CT|CIR|WAY|BLVD|RD|PL|TER)(LONGWOOD|SANFORD|OVIEDO|ORLANDO|APOPKA|MAITLAND)\b/gi, fix: '$1 $2' },
+        { pattern: /\b(LONGWOOD|SANFORD|OVIEDO|ORLANDO)(FL|FLORIDA)\b/gi, fix: '$1 $2' }
+      ];
+      let result = addr;
+      patterns.forEach(p => { result = result.replace(p.pattern, p.fix); });
+      return result;
+    }
+
+    function parseFullAddress(fullAddr) {
+      const result = { street: '', city: '', state: '', zip: '' };
+      if (!fullAddr) return result;
+      let addr = fullAddr.trim().toUpperCase().replace(/,/g, ' ').replace(/\s+/g, ' ');
+
+      // Extract ZIP code from end
+      const zipMatch = addr.match(/\b(\d{5}(-\d{4})?)\s*$/);
+      if (zipMatch) { result.zip = zipMatch[1]; addr = addr.replace(zipMatch[0], '').trim(); }
+
+      // Extract state abbreviation from end (all US state abbrevs)
+      const allStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'];
+      const stateMatch = addr.match(/\b([A-Z]{2})\s*$/);
+      if (stateMatch && allStates.includes(stateMatch[1])) {
+        result.state = stateMatch[1];
+        addr = addr.replace(stateMatch[0], '').trim();
+      }
+
+      // Try to find known cities at end
+      let foundCity = false;
+      for (const cityName of knownCities) {
+        const pattern = new RegExp('\\b' + cityName.replace(/\s+/g, '\\s+') + '\\s*$', 'i');
+        if (pattern.test(addr)) {
+          const lookup = cityLookup[cityName];
+          result.city = (lookup && lookup.normalize) ? lookup.normalize : cityName;
+          addr = addr.replace(pattern, '').trim();
+          if (!result.state && lookup) result.state = lookup.state;
+          foundCity = true;
+          break;
+        }
+      }
+
+      // If no known city found, try to extract city from end of address
+      if (!foundCity) {
+        // Street suffix patterns - include numbers for highways (HWY 28, ROUTE 66)
+        const suffixPattern = /\b(ROAD|RD|DRIVE|DR|STREET|ST|AVENUE|AVE|BOULEVARD|BLVD|LANE|LN|COURT|CT|CIRCLE|CIR|WAY|PLACE|PL|TERRACE|TER|TRAIL|TRL|HIGHWAY|HWY|PARKWAY|PKWY|LOOP|RUN|PATH|PASS|GLEN|GLN|COVE|CV|POINT|PT|ISLE?|BEACH|BCH|BEND|BND|VIEW|VW|HILL?|HLS?|SQUARE|SQ|PLAZA|PLZ|CROSSING|XING|ROUTE|RT)(\s+\d+)?\b/gi;
+        let lastMatch = null;
+        let match;
+        while ((match = suffixPattern.exec(addr)) !== null) {
+          lastMatch = match;
+        }
+        if (lastMatch) {
+          let afterSuffix = addr.substring(lastMatch.index + lastMatch[0].length).trim();
+          // Skip leading directions (N, S, E, W, NE, NW, SE, SW)
+          afterSuffix = afterSuffix.replace(/^(N|S|E|W|NE|NW|SE|SW)\b\s*/i, '').trim();
+          // Skip unit numbers that might come after
+          afterSuffix = afterSuffix.replace(/^#?\d+[A-Z]?\s*/i, '').trim();
+          // Check if there's something remaining that could be a city
+          if (afterSuffix && afterSuffix.length > 1 && !/^\d/.test(afterSuffix) && !/^(APT|STE|SUITE|UNIT|BLDG|BUILDING|#|LOT|SPACE|FLOOR|FL)\b/i.test(afterSuffix)) {
+            // Make sure it's not just a direction or number
+            if (!/^(N|S|E|W|NE|NW|SE|SW|\d+)$/i.test(afterSuffix)) {
+              result.city = afterSuffix;
+              addr = addr.substring(0, lastMatch.index + lastMatch[0].length).trim();
+            }
+          }
+        }
+
+        // Try another approach: if address has words after numbers, and no suffix found
+        // Pattern: "123 MAIN CITYNAME" where CITYNAME has no numbers
+        if (!result.city) {
+          const words = addr.split(/\s+/);
+          if (words.length >= 3) {
+            // Check if last word(s) look like a city (no numbers, not a direction)
+            let potentialCity = [];
+            for (let i = words.length - 1; i >= 2; i--) {
+              const word = words[i];
+              // Stop if we hit a number, direction, or common street word
+              if (/\d/.test(word) || /^(N|S|E|W|NE|NW|SE|SW)$/i.test(word) ||
+                  /^(RD|DR|ST|AVE|BLVD|LN|CT|CIR|WAY|PL|TER|TRL|HWY|PKWY)$/i.test(word)) {
+                break;
+              }
+              potentialCity.unshift(word);
+            }
+            if (potentialCity.length > 0 && potentialCity.length <= 3) {
+              const cityCandidate = potentialCity.join(' ');
+              // Make sure it's a reasonable city name (2+ chars, no weird characters)
+              if (cityCandidate.length >= 2 && /^[A-Z\s]+$/i.test(cityCandidate)) {
+                result.city = cityCandidate;
+                addr = words.slice(0, words.length - potentialCity.length).join(' ');
+              }
+            }
+          }
+        }
+      }
+
+      result.street = addr;
+      return result;
+    }
+
+    function normalizeState(state) {
+      if (!state) return '';
+      state = state.toUpperCase().trim();
+      if (state.length === 2) return state;
+      return stateMap[state] || state;
+    }
+
+    function isForeignAddress(address, city) {
+      const upper = (address + ' ' + city).toUpperCase();
+      const foreignPatterns = [
+        // Country names
+        /\bCANADA\b/, /\bONTARIO\b/, /\bQUEBEC\b/, /\bALBERTA\b/, /\bBRITISH COLUMBIA\b/,
+        /\bUNITED KINGDOM\b/, /\bENGLAND\b/, /\bSCOTLAND\b/, /\bWALES\b/, /\bIRELAND\b/,
+        /\bGERMANY\b/, /\bDEUTSCHLAND\b/, /\bFRANCE\b/, /\bITALY\b/, /\bITALIA\b/,
+        /\bSPAIN\b/, /\bESPANA\b/, /\bPORTUGAL\b/, /\bMEXICO\b/, /\bBRASIL\b/, /\bBRAZIL\b/,
+        /\bCHINA\b/, /\bJAPAN\b/, /\bKOREA\b/, /\bINDIA\b/, /\bPHILIPPINES\b/,
+        /\bAUSTRALIA\b/, /\bNEW ZEALAND\b/, /\bISRAEL\b/, /\bHUNGARY\b/, /\bBUDAPEST\b/i,
+        /\bNETHERLANDS\b/, /\bBELGIUM\b/, /\bSWITZERLAND\b/, /\bAUSTRIA\b/, /\bPOLAND\b/,
+        /\bRUSSIA\b/, /\bUKRAINE\b/, /\bGREECE\b/, /\bTURKEY\b/, /\bVENEZUELA\b/, /\bCOLOMBIA\b/,
+        /\bARGENTINA\b/, /\bCHILE\b/, /\bPERU\b/, /\bPUERTO RICO\b/, /\bCZECH\b/, /\bSLOVAK\b/,
+        // Foreign postal codes - Canadian
+        /\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b/,
+        // UK postal codes
+        /\b[A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}\b/,
+        // Foreign address patterns
+        /\bVIA\s+[A-Z]+/i, // Italian "Via" streets
+        /\bRUE\s+[A-Z]+/i, // French "Rue" streets
+        /\bAVENIDA\s+[A-Z]+/i, // Spanish/Portuguese "Avenida"
+        /\bCALLE\s+[A-Z]+/i, // Spanish "Calle"
+        /\bSTRASSE\b/i, // German "Strasse"
+        /\bSTR\s+\d/i, /\bSTR\.\s*\d/i, // German/European "Str 14" or "Str. 14"
+        /\bVERCSE\b/i, // Hungarian street
+        /\bUTCA\b/i, /\bUT\.\b/i, /\bKRT\b/i, // Hungarian street types
+        /\bURB\s+[A-Z]+/i, // Spanish "Urbanizacion"
+        /\bCONDOMINIO\b/i, // Spanish/Portuguese
+        /\bCEP\s*\d{5}/i, // Brazilian postal code
+        /\bEDO\s+[A-Z]+/i, // Spanish state abbreviation
+        /\bCHAPELLE\b/i, // French
+        /\bLAZIO\b/i, /\bROMA\b/i, /\bMILANO\b/i, // Italian regions
+        // Patterns ending with country-like suffixes (merged into address)
+        /SWITZERLAND$/i, /FRANCE$/i, /ITALY$/i, /TALY$/i, /HUNGARY$/i,
+        /WITZERLAND$/i, /RANCE$/i, /UNGARY$/i, /LAND$/i,
+        // Foreign city names embedded (including merged)
+        /BUDAPEST/i, /\bPARIS\b/, /\bLONDON\b/,
+        /\bBARHALTEN\b/i, /\bNIKLAUSEN\b/i, /\bTHOUARAULT\b/i, /\bMERIDA\b/i,
+        // Pattern: number + city merged like "14budapest"
+        /\d+[A-Z]{4,}/i
+      ];
+      return foreignPatterns.some(p => p.test(upper));
+    }
+
+    function isValidCity(city) {
+      if (!city) return true;
+      const upper = city.toUpperCase().trim();
+      if (upper.length < 2 || upper.length > 35) return false;
+      if (/^\d+$/.test(upper)) return false;
+      if (/\d{4,}/.test(upper)) return false;
+      return true;
+    }
+
+    function cleanupCity(city) {
+      if (!city) return '';
+      let cleaned = city.trim();
+      // Remove leading garbage: #, numbers, letter-number combos like "A1a", "C-207", "# L"
+      cleaned = cleaned.replace(/^[#@*!\s]+/, '').trim();
+      cleaned = cleaned.replace(/^[A-Z]?\d+[A-Z]?\s*/i, '').trim(); // A1a, A104, C-207
+      cleaned = cleaned.replace(/^[A-Z]-?\d+\s*/i, '').trim(); // C-207
+      cleaned = cleaned.replace(/^#\s*[A-Z]?\s*/i, '').trim(); // # L, # C
+      // Expand common abbreviations
+      cleaned = cleaned.replace(/\bSPG\b/gi, 'Springs');
+      cleaned = cleaned.replace(/\bSPGS\b/gi, 'Springs');
+      cleaned = cleaned.replace(/\bBCH\b/gi, 'Beach');
+      cleaned = cleaned.replace(/\bPK\b/gi, 'Park');
+      cleaned = cleaned.replace(/\bHTS\b/gi, 'Heights');
+      cleaned = cleaned.replace(/\bMTN\b/gi, 'Mountain');
+      cleaned = cleaned.replace(/\bVLG\b/gi, 'Village');
+      cleaned = cleaned.replace(/\bISL\b/gi, 'Isle');
+      return cleaned;
+    }
+
+    function formatName(rawName) {
+      let name = (rawName || '').replace(/"/g, '').trim().toUpperCase();
+      if (!name) return { recipient: 'Current Resident', company: '' };
+
+      // Step 1: Clean the name - remove all junk
+      name = cleanName(name);
+      if (!name || name.length < 2) return { recipient: 'Current Resident', company: '' };
+
+      // Step 2: Check if business
+      if (isBusinessName(name)) return { recipient: '', company: rawName.trim() };
+
+      // Step 3: Handle multiple owners with & - only use PRIMARY (first) owner
+      if (name.includes('&')) {
+        const parts = name.split(/\s*&\s*/).map(p => cleanName(p)).filter(p => p && p.length >= 2);
+        // Just use the first owner
+        name = parts[0] || '';
+        if (!name) return { recipient: 'Current Resident', company: '' };
+      }
+
+      // Step 4: Single owner
+      const owner = parseSingleName(name, false);
+      if (owner.first && owner.last) {
+        return { recipient: toTitleCase(owner.first + ' ' + owner.last), company: '' };
+      }
+      const finalName = toTitleCase(owner.first || owner.last || name);
+      if (!finalName || finalName.length < 2) {
+        return { recipient: 'Current Resident', company: '' };
+      }
+      return { recipient: finalName, company: '' };
+    }
+
+    // Clean all junk from a name
+    function cleanName(name) {
+      if (!name) return '';
+
+      // Remove leading junk: #, numbers, &, -, etc
+      name = name.replace(/^[^A-Za-z]+/, '');
+
+      // Remove these words completely (legal/garbage terms)
+      const removeWords = [
+        'ENH', 'EST', 'ESTATE', 'LIFE', 'TRUST', 'LIVING', 'REVOCABLE', 'IRREVOCABLE',
+        'REV', 'IRREV', 'TRUSTEE', 'FBO', 'ETAL', 'TR', 'FAMILY', 'JOINT',
+        'NUMBER', 'LAND', 'SUCC', 'SUCCESSOR', 'JTRS', 'JTWROS', 'TIC', 'WROS'
+      ];
+      let words = name.split(/\s+/);
+      words = words.filter(w => {
+        const upper = w.toUpperCase();
+        if (removeWords.includes(upper)) return false;
+        if (/^\d+$/.test(w)) return false; // Pure numbers
+        if (/^[^A-Za-z]/.test(w)) return false; // Starts with non-letter
+        return true;
+      });
+
+      // Remove duplicate consecutive words
+      const clean = [];
+      for (let i = 0; i < words.length; i++) {
+        if (i === 0 || words[i].toUpperCase() !== words[i-1].toUpperCase()) {
+          clean.push(words[i]);
+        }
+      }
+
+      // Remove single letter words and hyphenated initials like J-K
+      const result = clean.filter(w => {
+        if (/^[A-Z]-[A-Z]$/i.test(w)) return false; // J-K
+        if (/^[A-Z]$/i.test(w)) return false; // Single letters
+        if (w.length < 2) return false; // Too short
+        return true;
+      });
+
+      return result.join(' ').trim();
+    }
+
+    // Parse a single person's name
+    // fromAmpersand = true means this came from a & split (likely FIRSTNAME LASTNAME format)
+    function parseSingleName(name, isSecondary, fromAmpersand = false) {
+      if (!name) return { first: '', last: '' };
+
+      // Clean it first
+      name = cleanName(name);
+      if (!name) return { first: '', last: '' };
+
+      // Handle LASTNAME, FIRSTNAME format (has comma)
+      if (name.includes(',')) {
+        const parts = name.split(',').map(p => p.trim());
+        const last = parts[0];
+        // Only take FIRST word after comma (no middle names)
+        const firstParts = parts.slice(1).join(' ').trim().split(/\s+/);
+        const first = firstParts[0] || '';
+        return { first: first, last: last };
+      }
+
+      // No comma - split by space
+      const parts = name.split(/\s+/).filter(p => p);
+      if (parts.length === 0) return { first: '', last: '' };
+      if (parts.length === 1) return { first: '', last: parts[0] };
+
+      // Check for suffix at end
+      const lastWord = parts[parts.length - 1].toUpperCase();
+      let suffix = '';
+      if (['JR', 'SR', 'II', 'III', 'IV', 'V', 'VI'].includes(lastWord)) {
+        suffix = ' ' + parts.pop();
+      }
+
+      if (parts.length < 2) {
+        return { first: '', last: parts[0] + suffix };
+      }
+
+      // Default: assume LASTNAME FIRSTNAME (Seminole county format)
+      // First word is last name, second word is first name (ignore middle names)
+      return { first: parts[1], last: parts[0] + suffix };
+    }
+
+    function isBusinessName(name) {
+      if (!name) return false;
+      const upper = name.toUpperCase();
+      // Direct business keywords
+      const bizKeywords = ['LLC', 'INC', 'CORP', 'LTD', 'HOLDINGS', 'REDEVELOPMENT', 'PROPERTIES', 'INVESTMENTS', 'GROUP', 'ASSOCIATION', 'PARTNERS', 'ENTERPRISES', 'BANK', 'MORTGAGE', 'REALTY', 'COMPANY', 'CO\\.', 'SERVICES', 'MANAGEMENT', 'DEVELOPMENT', 'APARTMENTS', 'ASSN', 'FOUNDATION', 'MINISTRY', 'CHURCH', 'SCHOOL', 'UNIVERSITY', 'COLLEGE', 'HOSPITAL', 'CLINIC', 'HOA', 'HOMEOWNERS', 'CONDOMINIUM', 'CONDO ASSOC'];
+      if (bizKeywords.some(kw => new RegExp('\\b' + kw + '\\b').test(upper))) return true;
+      // Business-like patterns
+      const bizPatterns = [
+        /\bFLORIDA\s+(COMMUNITY|STATE|CENTRAL)\s+\w+/i, // "FLORIDA COMMUNITY PROPERTY"
+        /\b(COUNTY|STATE|CITY)\s+OF\b/i, // Government entities
+        /\bTHE\s+\w+\s+(OF|FOR)\b/i, // "THE ESTATE OF", "THE BANK OF"
+        /^\d{4}\s+\w+/, // Starts with 4-digit year
+        /^(ESTATE|HEIRS)\s+OF\b/i // "ESTATE OF", "HEIRS OF"
+      ];
+      return bizPatterns.some(p => p.test(upper));
+    }
+
+    function standardizeAddress(addr) {
+      if (!addr) return '';
+      const abbrevs = { 'STREET': 'ST', 'AVENUE': 'AVE', 'DRIVE': 'DR', 'ROAD': 'RD', 'BOULEVARD': 'BLVD', 'LANE': 'LN', 'COURT': 'CT', 'CIRCLE': 'CIR', 'PLACE': 'PL', 'TERRACE': 'TER', 'NORTH': 'N', 'SOUTH': 'S', 'EAST': 'E', 'WEST': 'W', 'NORTHEAST': 'NE', 'NORTHWEST': 'NW', 'SOUTHEAST': 'SE', 'SOUTHWEST': 'SW', 'APARTMENT': 'APT', 'SUITE': 'STE' };
+      let result = addr.toUpperCase();
+      Object.entries(abbrevs).forEach(([full, abbr]) => {
+        result = result.replace(new RegExp('\\b' + full + '\\b', 'g'), abbr);
+      });
+      return result;
+    }
+
+    function toTitleCase(str) {
+      if (!str) return '';
+      // Fix MC CALL -> MCCALL before processing
+      let result = str.replace(/\bMC\s+([A-Z])/gi, 'MC$1');
+      result = result.replace(/\bILL\b/gi, 'III').replace(/\bIL\b/gi, 'II');
+      result = result.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+      result = result.replace(/\bIi\b/g, 'II').replace(/\bIii\b/g, 'III').replace(/\bIv\b/g, 'IV').replace(/\bVi\b/g, 'VI').replace(/\bVii\b/g, 'VII').replace(/\bViii\b/g, 'VIII');
+      result = result.replace(/\bIll\b/g, 'III').replace(/\bIl\b/g, 'II');
+      result = result.replace(/\bMc([a-z])/g, (_, c) => 'Mc' + c.toUpperCase());
+      result = result.replace(/\bO'([a-z])/g, (_, c) => "O'" + c.toUpperCase());
+      // Also fix "Mc Call" -> "McCall" (space after Mc)
+      result = result.replace(/\bMc\s+([A-Z])/g, (_, c) => 'Mc' + c);
+      return result;
+    }
+
+    // Results display
+    function showResults(stats) {
+      document.getElementById('statTotal').textContent = stats.total.toLocaleString();
+      document.getElementById('statMatches').textContent = stats.matches.toLocaleString();
+      document.getElementById('statDupes').textContent = stats.dupes.toLocaleString();
+      document.getElementById('statBiz').textContent = stats.biz.toLocaleString();
+      document.getElementById('statExcluded').textContent = stats.excluded.toLocaleString();
+
+      emptyState.style.display = 'none';
+      resultsSection.style.display = 'block';
+      applyFilter();
+      generateExportSummary();
+    }
+
+    function generateExportSummary() {
+      const cityCounts = {};
+      const zipCounts = {};
+
+      results.forEach(r => {
+        const city = r.city || 'Unknown';
+        const zip = r.zipcode ? r.zipcode.substring(0, 5) : 'Unknown';
+        cityCounts[city] = (cityCounts[city] || 0) + 1;
+        zipCounts[zip] = (zipCounts[zip] || 0) + 1;
+      });
+
+      const sortedCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]);
+      const sortedZips = Object.entries(zipCounts).sort((a, b) => b[1] - a[1]);
+
+      document.getElementById('citySummary').innerHTML = '<span class="loc-chip" onclick="filterByCity(null)">All</span> ' +
+        sortedCities.slice(0, 12).map(([city, count]) => `<span class="loc-chip" onclick="filterByCity('${city}')">${city}: ${count}</span>`).join(' ');
+
+      document.getElementById('zipSummary').innerHTML = '<span class="loc-chip" onclick="filterByZip(null)">All</span> ' +
+        sortedZips.slice(0, 12).map(([zip, count]) => `<span class="loc-chip" onclick="filterByZip('${zip}')">${zip}: ${count}</span>`).join(' ');
+
+      document.getElementById('exportSummary').style.display = 'block';
+    }
+
+    function filterByZip(zip) {
+      currentZipFilter = zip;
+      currentCityFilter = null;
+      applyFilter();
+      if (zip) showToast(`Filtered to ${zip}`);
+    }
+
+    function filterByCity(city) {
+      currentCityFilter = city;
+      currentZipFilter = null;
+      applyFilter();
+      if (city) showToast(`Filtered to ${city}`);
+    }
+
+    function filterTable() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      applyFilter(query);
+    }
+
+    function applyFilter(searchQuery = '') {
+      filteredResults = results.filter(r => {
+        if (currentZipFilter && r.zipcode !== currentZipFilter) return false;
+        if (currentCityFilter && r.city.toUpperCase() !== currentCityFilter.toUpperCase()) return false;
+        if (searchQuery) {
+          const searchStr = `${r.recipient} ${r.address} ${r.city} ${r.zipcode} ${r.notes || ''}`.toLowerCase();
+          if (!searchStr.includes(searchQuery)) return false;
+        }
+        if (currentFilter === 'residential' && r.flags.includes('BIZ')) return false;
+        if (currentFilter === 'business' && !r.flags.includes('BIZ')) return false;
+        if (currentFilter === 'absentee' && !r.isAbsentee) return false;
+        if (currentFilter === 'owner' && r.isAbsentee) return false;
+        return true;
+      });
+
+      renderTable();
+
+      const info = document.getElementById('tableInfo');
+      let filterText = `Showing ${filteredResults.length.toLocaleString()} of ${results.length.toLocaleString()}`;
+      if (currentZipFilter) filterText += ` in ${currentZipFilter}`;
+      if (currentCityFilter) filterText += ` in ${currentCityFilter}`;
+      info.textContent = filterText;
+
+      updateExportPreview();
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      document.querySelector(`.chip[onclick="setFilter('${filter}')"]`)?.classList.add('active');
+      applyFilter(document.getElementById('searchInput').value.toLowerCase());
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = filteredResults.slice(0, 500).map((r, i) => {
+        const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+        const tracker = mailedTracker[key];
+        const mailCount = tracker ? tracker.count : 0;
+        const mailColor = mailCount >= 7 ? '#f59e0b' : mailCount >= 3 ? '#22c55e' : mailCount > 0 ? '#60a5fa' : '#555';
+
+        return `<tr>
+          <td><button class="row-btn" onclick="openEditModal(${i})">✏️</button> <button class="row-btn danger" onclick="removeRow(${i})">🗑️</button></td>
+          <td title="${r.recipient}">${r.recipient}</td>
+          <td title="${r.address}">${r.address}</td>
+          <td>${r.city}</td>
+          <td>${r.zipcode}</td>
+          <td>${r.propertyValue || ''}</td>
+          <td>${r.poolAge ? r.poolAge + 'y' : ''}</td>
+          <td><span class="badge ${r.isAbsentee ? 'badge-orange' : 'badge-green'}">${r.isAbsentee ? 'Absent' : 'Owner'}</span></td>
+          <td style="text-align:center; color:${mailColor}; font-weight:${mailCount > 0 ? 'bold' : 'normal'};">${mailCount > 0 ? mailCount + 'x' : '-'}</td>
+          <td><input type="text" class="note-input" value="${r.notes || ''}" onchange="updateNote(${i}, this.value)" placeholder="..."></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function updateNote(index, note) {
+      if (filteredResults[index]) {
+        filteredResults[index].notes = note;
+        const original = results.find(r => r.address === filteredResults[index].address && r.zipcode === filteredResults[index].zipcode);
+        if (original) original.notes = note;
+      }
+    }
+
+    // Sorting
+    let sortColumn = null;
+    let sortDir = 1;
+
+    function sortTable(column) {
+      if (sortColumn === column) sortDir *= -1;
+      else { sortColumn = column; sortDir = 1; }
+
+      const numericColumns = ['poolAge', 'yearBuilt', 'propertyValue', 'assessedValue', 'mailCount'];
+
+      filteredResults.sort((a, b) => {
+        if (column === 'mailCount') {
+          const aKey = `${a.address}|${a.city}|${a.zipcode}`.toUpperCase();
+          const bKey = `${b.address}|${b.city}|${b.zipcode}`.toUpperCase();
+          return ((mailedTracker[aKey]?.count || 0) - (mailedTracker[bKey]?.count || 0)) * sortDir;
+        }
+        let aVal = a[column] || '';
+        let bVal = b[column] || '';
+        if (numericColumns.includes(column)) {
+          return (parseFloat(String(aVal).replace(/[^0-9.-]/g, '')) || 0) - (parseFloat(String(bVal).replace(/[^0-9.-]/g, '')) || 0) * sortDir;
+        }
+        return String(aVal).toLowerCase().localeCompare(String(bVal).toLowerCase()) * sortDir;
+      });
+
+      renderTable();
+    }
+
+    // Edit modal
+    function openEditModal(index) {
+      editingIndex = index;
+      const r = filteredResults[index];
+      document.getElementById('editRecipient').value = r.recipient;
+      document.getElementById('editCompany').value = r.company;
+      document.getElementById('editAddress').value = r.address;
+      document.getElementById('editCity').value = r.city;
+      document.getElementById('editState').value = r.state;
+      document.getElementById('editZipcode').value = r.zipcode;
+      document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('show');
+      editingIndex = -1;
+    }
+
+    function saveEdit() {
+      if (editingIndex < 0) return;
+      const r = filteredResults[editingIndex];
+      r.recipient = document.getElementById('editRecipient').value;
+      r.company = document.getElementById('editCompany').value;
+      r.address = document.getElementById('editAddress').value;
+      r.city = document.getElementById('editCity').value;
+      r.state = document.getElementById('editState').value;
+      r.zipcode = document.getElementById('editZipcode').value;
+      closeEditModal();
+      renderTable();
+      showToast('Record updated');
+    }
+
+    function removeRow(i) {
+      const removed = filteredResults[i];
+      const idx = results.indexOf(removed);
+      if (idx >= 0) results.splice(idx, 1);
+      filteredResults.splice(i, 1);
+      renderTable();
+      document.getElementById('statMatches').textContent = results.length.toLocaleString();
+    }
+
+    // Export functions - VistaPrint format
+    function generateCSV(data) {
+      const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode'];
+      const rows = data.map(r => {
+        return [
+          `"${(r.recipient || '').replace(/"/g, '""')}"`,
+          `"${(r.company || '').replace(/"/g, '""')}"`,
+          `"${(r.address || '').replace(/"/g, '""')}"`,
+          `"${(r.city || '').replace(/"/g, '""')}"`,
+          `"${(r.state || '').replace(/"/g, '""')}"`,
+          `"${(r.zipcode || '').replace(/"/g, '""')}"`
+        ].join(',');
+      });
+      return [headers.join(','), ...rows].join('\n');
+    }
+
+    function getExportCount() {
+      const select = document.getElementById('exportCount');
+      const customInput = document.getElementById('customExportCount');
+      if (select.value === 'custom') return parseInt(customInput.value) || 0;
+      return parseInt(select.value) || 0;
+    }
+
+    function getExportableRecords() {
+      const skipMailed = document.getElementById('skipExported').checked;
+      const includeRecycle = document.getElementById('includeRecycle').checked;
+      const recycleDays = parseInt(document.getElementById('recycleDays').value) || 30;
+      let exportable = filteredResults;
+
+      if (skipMailed) {
+        exportable = filteredResults.filter(r => {
+          const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+          const tracker = mailedTracker[key];
+          if (!tracker) return true;
+          if (includeRecycle) {
+            const daysSince = Math.floor((new Date() - new Date(tracker.lastMailed)) / (1000 * 60 * 60 * 24));
+            return daysSince >= recycleDays;
+          }
+          return false;
+        });
+      }
+
+      const count = getExportCount();
+      if (count > 0) exportable = exportable.slice(0, count);
+      return exportable;
+    }
+
+    function updateExportPreview() {
+      const exportable = getExportableRecords();
+      document.getElementById('exportPreviewCount').textContent = exportable.length.toLocaleString();
+    }
+
+    function downloadCSV() {
+      const exportable = getExportableRecords();
+      if (exportable.length === 0) { showToast('No data to export'); return; }
+
+      let filename = 'mailing_list';
+      if (currentCityFilter) filename += `_${currentCityFilter.replace(/\s+/g, '_')}`;
+      if (currentZipFilter) filename += `_${currentZipFilter}`;
+      filename += `_${exportable.length}_${new Date().toISOString().slice(0,10)}.csv`;
+
+      const csv = generateCSV(exportable);
+      downloadFile(csv, filename);
+      addToHistory(exportable.length);
+      const addedCount = addToMailedList(exportable);
+      showToast(`Exported ${exportable.length} records`);
+      updateExportPreview();
+    }
+
+    function downloadAllCSV() {
+      if (results.length === 0) { showToast('No data'); return; }
+      const csv = generateCSV(results);
+      downloadFile(csv, `mailing_list_ALL_${new Date().toISOString().slice(0,10)}.csv`);
+      addToHistory(results.length);
+      addToMailedList(results);
+      showToast(`Exported ${results.length} records`);
+    }
+
+    function exportRecyclable() {
+      const recycleDays = parseInt(document.getElementById('recycleDays').value) || 30;
+      const count = getExportCount();
+
+      let recyclable = filteredResults.filter(r => {
+        const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+        const tracker = mailedTracker[key];
+        if (!tracker) return false;
+        const daysSince = Math.floor((new Date() - new Date(tracker.lastMailed)) / (1000 * 60 * 60 * 24));
+        return daysSince >= recycleDays;
+      });
+
+      if (recyclable.length === 0) { showToast(`No recyclable addresses (${recycleDays}+ days)`); return; }
+      if (count > 0) recyclable = recyclable.slice(0, count);
+
+      const csv = generateCSV(recyclable);
+      downloadFile(csv, `recycle_${recyclable.length}_${new Date().toISOString().slice(0,10)}.csv`);
+      addToHistory(recyclable.length, 'Recycle');
+      addToMailedList(recyclable);
+      showToast(`Exported ${recyclable.length} recyclable records`);
+      updateExportPreview();
+    }
+
+    function downloadFile(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copyCSV() {
+      const exportable = getExportableRecords();
+      if (exportable.length === 0) { showToast('No data'); return; }
+      const csv = generateCSV(exportable);
+      navigator.clipboard.writeText(csv).then(() => showToast(`Copied ${exportable.length} records`));
+    }
+
+    function exportLabels() {
+      const exportable = getExportableRecords();
+      if (exportable.length === 0) { showToast('No data'); return; }
+
+      let html = `<!DOCTYPE html><html><head><title>Labels</title><style>
+        @page { margin: 0.5in 0.1875in; size: letter; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; font-size: 10pt; }
+        .page { page-break-after: always; }
+        .label-row { display: flex; }
+        .label { width: 2.625in; height: 1in; padding: 0.1in; display: flex; flex-direction: column; justify-content: center; }
+        .label-name { font-weight: bold; font-size: 10pt; }
+        .label-addr { font-size: 9pt; }
+        @media print { .no-print { display: none; } }
+      </style></head><body>
+      <div class="no-print" style="padding:20px; background:#eee; margin-bottom:20px;">
+        <h2>Print Labels (${exportable.length})</h2>
+        <p>Set margins to None, disable headers/footers</p>
+        <button onclick="window.print()" style="padding:10px 20px; margin-top:10px;">Print</button>
+      </div>`;
+
+      let labelCount = 0;
+      let rowLabels = [];
+
+      for (const r of exportable) {
+        if (labelCount % 30 === 0 && labelCount > 0) html += '</div>';
+        if (labelCount % 30 === 0) html += '<div class="page">';
+
+        rowLabels.push(`<div class="label"><div class="label-name">${r.recipient || 'Current Resident'}</div><div class="label-addr">${r.address}</div><div class="label-addr">${r.city}, ${r.state} ${r.zipcode}</div></div>`);
+
+        if (rowLabels.length === 3) {
+          html += '<div class="label-row">' + rowLabels.join('') + '</div>';
+          rowLabels = [];
+        }
+        labelCount++;
+      }
+
+      if (rowLabels.length > 0) {
+        while (rowLabels.length < 3) rowLabels.push('<div class="label"></div>');
+        html += '<div class="label-row">' + rowLabels.join('') + '</div>';
+      }
+
+      html += '</div></body></html>';
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(html);
+      printWindow.document.close();
+
+      addToHistory(exportable.length, 'Labels');
+      addToMailedList(exportable);
+      showToast(`Generated ${exportable.length} labels`);
+      updateExportPreview();
+    }
+
+    function sortByRoute() {
+      if (filteredResults.length === 0) { showToast('No data'); return; }
+
+      filteredResults.sort((a, b) => {
+        const zipA = (a.zipcode || '').substring(0, 5);
+        const zipB = (b.zipcode || '').substring(0, 5);
+        if (zipA !== zipB) return zipA.localeCompare(zipB);
+        if (a.city !== b.city) return (a.city || '').localeCompare(b.city || '');
+
+        const streetA = (a.address || '').replace(/^\d+\s*/, '');
+        const streetB = (b.address || '').replace(/^\d+\s*/, '');
+        if (streetA !== streetB) return streetA.localeCompare(streetB);
+
+        const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0');
+        const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
+        return numA - numB;
+      });
+
+      renderTable();
+      showToast('Sorted by route');
+    }
+
+    // Mailed List Functions
+    function addToMailedList(records) {
+      const today = new Date().toISOString().slice(0, 10);
+      let addedCount = 0;
+
+      records.forEach(r => {
+        const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+        if (mailedTracker[key]) {
+          mailedTracker[key].count++;
+          mailedTracker[key].lastMailed = today;
+        } else {
+          mailedTracker[key] = { count: 1, firstMailed: today, lastMailed: today };
+          addedCount++;
+        }
+      });
+
+      mailedAddresses = Object.keys(mailedTracker);
+      localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+      updateMailedBadge();
+      return addedCount;
+    }
+
+    function getRecyclableCount(recycleDays = 30) {
+      let count = 0;
+      const today = new Date();
+      Object.values(mailedTracker).forEach(data => {
+        const daysSince = Math.floor((today - new Date(data.lastMailed)) / (1000 * 60 * 60 * 24));
+        if (daysSince >= recycleDays) count++;
+      });
+      return count;
+    }
+
+    function clearMailedList() {
+      if (!confirm('Clear all mailed addresses?')) return;
+      mailedTracker = {};
+      mailedAddresses = [];
+      localStorage.setItem('poolscraper_mailed_v2', '{}');
+      updateMailedBadge();
+      renderMailedList();
+      showToast('Mailed list cleared');
+    }
+
+    function exportMailedList() {
+      if (mailedAddresses.length === 0) { showToast('No mailed addresses'); return; }
+      const lines = Object.entries(mailedTracker).map(([key, data]) => `${key}\t${data.count}\t${data.firstMailed}\t${data.lastMailed}`);
+      const content = ['ADDRESS|CITY|ZIP\tCOUNT\tFIRST\tLAST', ...lines].join('\n');
+      downloadFile(content, `mailed_tracker_${new Date().toISOString().slice(0,10)}.txt`);
+      showToast(`Exported ${mailedAddresses.length} addresses`);
+    }
+
+    function importMailedList() {
+      document.getElementById('mailedFileInput').click();
+    }
+
+    function handleMailedFile(input) {
+      const file = input.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = e.target.result.split('\n').map(l => l.trim()).filter(l => l);
+        const today = new Date().toISOString().slice(0, 10);
+        let addedCount = 0;
+
+        lines.forEach(line => {
+          if (line.startsWith('ADDRESS')) return;
+          const parts = line.split('\t');
+          const addr = parts[0].toUpperCase();
+          if (!addr) return;
+          if (!mailedTracker[addr]) {
+            if (parts.length >= 4) {
+              mailedTracker[addr] = { count: parseInt(parts[1]) || 1, firstMailed: parts[2] || today, lastMailed: parts[3] || today };
+            } else {
+              mailedTracker[addr] = { count: 1, firstMailed: today, lastMailed: today };
+            }
+            addedCount++;
+          }
+        });
+
+        mailedAddresses = Object.keys(mailedTracker);
+        localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+        updateMailedBadge();
+        renderMailedList();
+        showToast(`Imported ${addedCount} addresses`);
+      };
+      reader.readAsText(file);
+      input.value = '';
+    }
+
+    function renderMailedList() {
+      const container = document.getElementById('mailedListPreview');
+      const recycleDays = parseInt(document.getElementById('recycleDays')?.value) || 30;
+      const recyclableCount = getRecyclableCount(recycleDays);
+
+      document.getElementById('mailedCount').textContent = `${mailedAddresses.length.toLocaleString()} addresses tracked | ${recyclableCount} recyclable (${recycleDays}+ days)`;
+
+      if (mailedAddresses.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-dim); padding:20px; text-align:center;">No mailed addresses yet</p>';
+        return;
+      }
+
+      const sorted = Object.entries(mailedTracker).sort((a, b) => new Date(b[1].lastMailed) - new Date(a[1].lastMailed)).slice(0, 100);
+      const today = new Date();
+
+      container.innerHTML = `
+        <div class="mailed-grid">
+          <div class="mailed-header">Address</div>
+          <div class="mailed-header">Count</div>
+          <div class="mailed-header">Last</div>
+          <div class="mailed-header">Days</div>
+          ${sorted.map(([addr, data]) => {
+            const daysSince = Math.floor((today - new Date(data.lastMailed)) / (1000 * 60 * 60 * 24));
+            const isRecyclable = daysSince >= recycleDays;
+            const countColor = data.count >= 7 ? '#f59e0b' : data.count >= 3 ? '#22c55e' : '#fff';
+            return `
+              <div class="mailed-row ${isRecyclable ? 'recyclable' : ''}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${addr}">${addr.substring(0, 40)}...</div>
+              <div class="mailed-row ${isRecyclable ? 'recyclable' : ''}" style="color:${countColor}; font-weight:bold;">${data.count}x</div>
+              <div class="mailed-row ${isRecyclable ? 'recyclable' : ''}">${data.lastMailed}</div>
+              <div class="mailed-row ${isRecyclable ? 'recyclable' : ''}" style="color:${isRecyclable ? '#22c55e' : '#888'};">${daysSince}d</div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    function updateMailedBadge() {
+      const badge = document.getElementById('mailedBadge');
+      if (mailedAddresses.length > 0) {
+        badge.textContent = mailedAddresses.length > 999 ? '999+' : mailedAddresses.length;
+        badge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    // History functions
+    function addToHistory(count, type = 'Export') {
+      exportHistory.unshift({ date: new Date().toISOString(), count, type });
+      if (exportHistory.length > 50) exportHistory.pop();
+      localStorage.setItem('poolscraper_history', JSON.stringify(exportHistory));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      if (exportHistory.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-dim); text-align:center; padding:20px;">No exports yet</p>';
+        return;
+      }
+      container.innerHTML = exportHistory.slice(0, 20).map(h => `
+        <div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg); border-radius:4px; margin-bottom:6px; font-size:12px;">
+          <span>${h.type}: ${h.count.toLocaleString()} records</span>
+          <span style="color:var(--text-dim);">${new Date(h.date).toLocaleDateString()}</span>
+        </div>
+      `).join('');
+    }
+
+    function clearHistory() {
+      if (!confirm('Clear history?')) return;
+      exportHistory = [];
+      localStorage.setItem('poolscraper_history', '[]');
+      renderHistory();
+      showToast('History cleared');
+    }
+
+    // Merge functions
+    function addToMerge() {
+      if (results.length === 0) { showToast('No results to add'); return; }
+      mergeData.push({ name: `Export ${mergeData.length + 1}`, count: results.length, data: [...results] });
+      renderMergeFiles();
+      updateMergeBadge();
+      showToast(`Added ${results.length} records to merge`);
+    }
+
+    function renderMergeFiles() {
+      const container = document.getElementById('mergeFiles');
+      if (mergeData.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-dim); text-align:center; padding:20px;">No files to merge</p>';
+        return;
+      }
+      container.innerHTML = mergeData.map((m, i) => `
+        <div style="display:flex; justify-content:space-between; padding:10px; background:var(--bg); border-radius:4px; margin-bottom:8px;">
+          <span style="font-size:13px;">${m.name} (${m.count.toLocaleString()} records)</span>
+          <button class="btn btn-sm" style="background:var(--red); color:white;" onclick="removeMerge(${i})">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    function removeMerge(i) {
+      mergeData.splice(i, 1);
+      renderMergeFiles();
+      updateMergeBadge();
+    }
+
+    function updateMergeBadge() {
+      const badge = document.getElementById('mergeBadge');
+      if (mergeData.length > 0) { badge.textContent = mergeData.length; badge.style.display = 'inline'; }
+      else badge.style.display = 'none';
+    }
+
+    function downloadMerged() {
+      if (mergeData.length === 0) { showToast('Nothing to merge'); return; }
+      const combined = [];
+      const seen = new Set();
+      mergeData.forEach(m => {
+        m.data.forEach(r => {
+          const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+          if (!seen.has(key)) { combined.push(r); seen.add(key); }
+        });
+      });
+      const csv = generateCSV(combined);
+      downloadFile(csv, `merged_${new Date().toISOString().slice(0,10)}.csv`);
+      addToHistory(combined.length, 'Merged');
+      showToast(`Merged ${combined.length} records`);
+    }
+
+    function clearMerge() {
+      mergeData = [];
+      renderMergeFiles();
+      updateMergeBadge();
+      showToast('Merge cleared');
+    }
+
+    // Exclude list
+    function saveExcludeList() {
+      excludeAddresses = document.getElementById('excludeList').value.split('\n').map(l => l.trim()).filter(l => l);
+      localStorage.setItem('poolscraper_exclude', JSON.stringify(excludeAddresses));
+      document.getElementById('excludeCount').textContent = `${excludeAddresses.length} addresses`;
+      showToast('Exclude list saved');
+    }
+
+    // Clear all
+    function clearAll() {
+      fileContent = null;
+      parsedRows = [];
+      headers = [];
+      results = [];
+      filteredResults = [];
+      dropZone.classList.remove('has-file');
+      fileInfo.innerHTML = '';
+      document.getElementById('detectedInfo').style.display = 'none';
+      document.getElementById('mapperSection').style.display = 'none';
+      document.getElementById('samplePreviewCard').style.display = 'none';
+      processBtn.disabled = true;
+      resultsSection.style.display = 'none';
+      emptyState.style.display = 'block';
+      showToast('Cleared');
+    }
+</script>
+</body>
+</html>
