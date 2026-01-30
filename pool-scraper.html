@@ -305,7 +305,7 @@
           </div>
           <div class="section-content">
             <div class="form-row">
-              <div class="form-group"><label>State</label><input type="text" id="targetState" value="FL"></div>
+              <div class="form-group"><label>State</label><input type="text" id="targetState" placeholder="Auto-detect"></div>
               <div class="form-group"><label>Cities</label><input type="text" id="targetCities" placeholder="Orlando, Tampa"></div>
             </div>
             <div class="form-group"><label>Zip Codes</label><input type="text" id="targetZips" placeholder="32746, 32801"></div>
@@ -711,7 +711,7 @@
             <li>Absentee owners need pool service more - they can't maintain it themselves</li>
             <li>Use Pool Verifier to visually confirm pools exist before mailing</li>
             <li>Addresses marked ❌ No Pool in Verifier are auto-excluded</li>
-            <li>500+ Florida cities are auto-normalized (Santa Rsa Beach → Santa Rosa Beach)</li>
+            <li>1,200+ cities across all 50 states are auto-normalized</li>
           </ul>
         </div>
       </div>
@@ -1958,16 +1958,370 @@
       'ZEPHYRHILLS NORTH': { state: 'FL', zip: '33540', normalize: 'Zephyrhills North' },
       'ZEPHYRHILLS SOUTH': { state: 'FL', zip: '33541', normalize: 'Zephyrhills South' },
       'ZEPHYRHILLS WEST': { state: 'FL', zip: '33541', normalize: 'Zephyrhills West' },
-      'ZOLFO SPRINGS': { state: 'FL', zip: '33890', normalize: 'Zolfo Springs' }
+      'ZOLFO SPRINGS': { state: 'FL', zip: '33890', normalize: 'Zolfo Springs' },
+
+      // === ALABAMA ===
+      'MONTGOMERY': { state: 'AL', zip: '36104', normalize: 'Montgomery' },
+      'BIRMINGHAM': { state: 'AL', zip: '35203', normalize: 'Birmingham' },
+      'HUNTSVILLE': { state: 'AL', zip: '35801', normalize: 'Huntsville' },
+      'MOBILE': { state: 'AL', zip: '36602', normalize: 'Mobile' },
+      'TUSCALOOSA': { state: 'AL', zip: '35401', normalize: 'Tuscaloosa' },
+
+      // === ALASKA ===
+      'JUNEAU': { state: 'AK', zip: '99801', normalize: 'Juneau' },
+      'ANCHORAGE': { state: 'AK', zip: '99501', normalize: 'Anchorage' },
+      'FAIRBANKS': { state: 'AK', zip: '99701', normalize: 'Fairbanks' },
+
+      // === ARIZONA ===
+      'PHOENIX': { state: 'AZ', zip: '85001', normalize: 'Phoenix' },
+      'TUCSON': { state: 'AZ', zip: '85701', normalize: 'Tucson' },
+      'MESA': { state: 'AZ', zip: '85201', normalize: 'Mesa' },
+      'SCOTTSDALE': { state: 'AZ', zip: '85251', normalize: 'Scottsdale' },
+      'CHANDLER': { state: 'AZ', zip: '85224', normalize: 'Chandler' },
+      'GILBERT': { state: 'AZ', zip: '85233', normalize: 'Gilbert' },
+      'GLENDALE': { state: 'AZ', zip: '85301', normalize: 'Glendale' },
+      'TEMPE': { state: 'AZ', zip: '85281', normalize: 'Tempe' },
+      'PEORIA': { state: 'AZ', zip: '85345', normalize: 'Peoria' },
+      'SURPRISE': { state: 'AZ', zip: '85374', normalize: 'Surprise' },
+
+      // === ARKANSAS ===
+      'LITTLE ROCK': { state: 'AR', zip: '72201', normalize: 'Little Rock' },
+      'FORT SMITH': { state: 'AR', zip: '72901', normalize: 'Fort Smith' },
+      'FT SMITH': { state: 'AR', zip: '72901', normalize: 'Fort Smith' },
+      'FAYETTEVILLE': { state: 'AR', zip: '72701', normalize: 'Fayetteville' },
+      'SPRINGDALE': { state: 'AR', zip: '72762', normalize: 'Springdale' },
+
+      // === CALIFORNIA ===
+      'SACRAMENTO': { state: 'CA', zip: '95814', normalize: 'Sacramento' },
+      'LOS ANGELES': { state: 'CA', zip: '90001', normalize: 'Los Angeles' },
+      'SAN DIEGO': { state: 'CA', zip: '92101', normalize: 'San Diego' },
+      'SAN JOSE': { state: 'CA', zip: '95101', normalize: 'San Jose' },
+      'SAN FRANCISCO': { state: 'CA', zip: '94102', normalize: 'San Francisco' },
+      'FRESNO': { state: 'CA', zip: '93701', normalize: 'Fresno' },
+      'LONG BEACH': { state: 'CA', zip: '90802', normalize: 'Long Beach' },
+      'OAKLAND': { state: 'CA', zip: '94601', normalize: 'Oakland' },
+      'BAKERSFIELD': { state: 'CA', zip: '93301', normalize: 'Bakersfield' },
+      'ANAHEIM': { state: 'CA', zip: '92801', normalize: 'Anaheim' },
+      'SANTA ANA': { state: 'CA', zip: '92701', normalize: 'Santa Ana' },
+      'RIVERSIDE': { state: 'CA', zip: '92501', normalize: 'Riverside' },
+      'IRVINE': { state: 'CA', zip: '92602', normalize: 'Irvine' },
+      'STOCKTON': { state: 'CA', zip: '95202', normalize: 'Stockton' },
+
+      // === COLORADO ===
+      'DENVER': { state: 'CO', zip: '80202', normalize: 'Denver' },
+      'COLORADO SPRINGS': { state: 'CO', zip: '80903', normalize: 'Colorado Springs' },
+      'AURORA': { state: 'CO', zip: '80010', normalize: 'Aurora' },
+      'FORT COLLINS': { state: 'CO', zip: '80521', normalize: 'Fort Collins' },
+      'FT COLLINS': { state: 'CO', zip: '80521', normalize: 'Fort Collins' },
+      'LAKEWOOD': { state: 'CO', zip: '80226', normalize: 'Lakewood' },
+
+      // === CONNECTICUT ===
+      'HARTFORD': { state: 'CT', zip: '06103', normalize: 'Hartford' },
+      'BRIDGEPORT': { state: 'CT', zip: '06601', normalize: 'Bridgeport' },
+      'NEW HAVEN': { state: 'CT', zip: '06510', normalize: 'New Haven' },
+      'STAMFORD': { state: 'CT', zip: '06901', normalize: 'Stamford' },
+      'WATERBURY': { state: 'CT', zip: '06702', normalize: 'Waterbury' },
+
+      // === DELAWARE ===
+      'DOVER': { state: 'DE', zip: '19901', normalize: 'Dover' },
+      'WILMINGTON': { state: 'DE', zip: '19801', normalize: 'Wilmington' },
+      'NEWARK': { state: 'DE', zip: '19711', normalize: 'Newark' },
+
+      // === GEORGIA ===
+      'ATLANTA': { state: 'GA', zip: '30301', normalize: 'Atlanta' },
+      'AUGUSTA': { state: 'GA', zip: '30901', normalize: 'Augusta' },
+      'COLUMBUS': { state: 'GA', zip: '31901', normalize: 'Columbus' },
+      'SAVANNAH': { state: 'GA', zip: '31401', normalize: 'Savannah' },
+      'MACON': { state: 'GA', zip: '31201', normalize: 'Macon' },
+      'ROSWELL': { state: 'GA', zip: '30075', normalize: 'Roswell' },
+      'MARIETTA': { state: 'GA', zip: '30060', normalize: 'Marietta' },
+      'ALPHARETTA': { state: 'GA', zip: '30004', normalize: 'Alpharetta' },
+
+      // === HAWAII ===
+      'HONOLULU': { state: 'HI', zip: '96813', normalize: 'Honolulu' },
+      'HILO': { state: 'HI', zip: '96720', normalize: 'Hilo' },
+      'KAILUA': { state: 'HI', zip: '96734', normalize: 'Kailua' },
+
+      // === IDAHO ===
+      'BOISE': { state: 'ID', zip: '83702', normalize: 'Boise' },
+      'MERIDIAN': { state: 'ID', zip: '83642', normalize: 'Meridian' },
+      'NAMPA': { state: 'ID', zip: '83651', normalize: 'Nampa' },
+      'IDAHO FALLS': { state: 'ID', zip: '83401', normalize: 'Idaho Falls' },
+
+      // === ILLINOIS ===
+      'SPRINGFIELD': { state: 'IL', zip: '62701', normalize: 'Springfield' },
+      'CHICAGO': { state: 'IL', zip: '60601', normalize: 'Chicago' },
+      'AURORA IL': { state: 'IL', zip: '60505', normalize: 'Aurora' },
+      'NAPERVILLE': { state: 'IL', zip: '60540', normalize: 'Naperville' },
+      'ROCKFORD': { state: 'IL', zip: '61101', normalize: 'Rockford' },
+      'JOLIET': { state: 'IL', zip: '60431', normalize: 'Joliet' },
+
+      // === INDIANA ===
+      'INDIANAPOLIS': { state: 'IN', zip: '46204', normalize: 'Indianapolis' },
+      'FORT WAYNE': { state: 'IN', zip: '46802', normalize: 'Fort Wayne' },
+      'FT WAYNE': { state: 'IN', zip: '46802', normalize: 'Fort Wayne' },
+      'EVANSVILLE': { state: 'IN', zip: '47708', normalize: 'Evansville' },
+      'SOUTH BEND': { state: 'IN', zip: '46601', normalize: 'South Bend' },
+
+      // === IOWA ===
+      'DES MOINES': { state: 'IA', zip: '50309', normalize: 'Des Moines' },
+      'CEDAR RAPIDS': { state: 'IA', zip: '52401', normalize: 'Cedar Rapids' },
+      'DAVENPORT': { state: 'IA', zip: '52801', normalize: 'Davenport' },
+
+      // === KANSAS ===
+      'TOPEKA': { state: 'KS', zip: '66603', normalize: 'Topeka' },
+      'WICHITA': { state: 'KS', zip: '67202', normalize: 'Wichita' },
+      'OVERLAND PARK': { state: 'KS', zip: '66204', normalize: 'Overland Park' },
+      'KANSAS CITY KS': { state: 'KS', zip: '66101', normalize: 'Kansas City' },
+
+      // === KENTUCKY ===
+      'FRANKFORT': { state: 'KY', zip: '40601', normalize: 'Frankfort' },
+      'LOUISVILLE': { state: 'KY', zip: '40202', normalize: 'Louisville' },
+      'LEXINGTON': { state: 'KY', zip: '40507', normalize: 'Lexington' },
+      'BOWLING GREEN': { state: 'KY', zip: '42101', normalize: 'Bowling Green' },
+
+      // === LOUISIANA ===
+      'BATON ROUGE': { state: 'LA', zip: '70801', normalize: 'Baton Rouge' },
+      'NEW ORLEANS': { state: 'LA', zip: '70112', normalize: 'New Orleans' },
+      'SHREVEPORT': { state: 'LA', zip: '71101', normalize: 'Shreveport' },
+      'LAFAYETTE': { state: 'LA', zip: '70501', normalize: 'Lafayette' },
+
+      // === MAINE ===
+      'AUGUSTA ME': { state: 'ME', zip: '04330', normalize: 'Augusta' },
+      'PORTLAND ME': { state: 'ME', zip: '04101', normalize: 'Portland' },
+      'BANGOR': { state: 'ME', zip: '04401', normalize: 'Bangor' },
+
+      // === MARYLAND ===
+      'ANNAPOLIS': { state: 'MD', zip: '21401', normalize: 'Annapolis' },
+      'BALTIMORE': { state: 'MD', zip: '21202', normalize: 'Baltimore' },
+      'FREDERICK': { state: 'MD', zip: '21701', normalize: 'Frederick' },
+      'ROCKVILLE': { state: 'MD', zip: '20850', normalize: 'Rockville' },
+      'SILVER SPRING': { state: 'MD', zip: '20901', normalize: 'Silver Spring' },
+
+      // === MASSACHUSETTS ===
+      'BOSTON': { state: 'MA', zip: '02101', normalize: 'Boston' },
+      'WORCESTER': { state: 'MA', zip: '01601', normalize: 'Worcester' },
+      'CAMBRIDGE': { state: 'MA', zip: '02139', normalize: 'Cambridge' },
+      'LOWELL': { state: 'MA', zip: '01851', normalize: 'Lowell' },
+
+      // === MICHIGAN ===
+      'LANSING': { state: 'MI', zip: '48933', normalize: 'Lansing' },
+      'DETROIT': { state: 'MI', zip: '48226', normalize: 'Detroit' },
+      'GRAND RAPIDS': { state: 'MI', zip: '49503', normalize: 'Grand Rapids' },
+      'WARREN': { state: 'MI', zip: '48089', normalize: 'Warren' },
+      'ANN ARBOR': { state: 'MI', zip: '48104', normalize: 'Ann Arbor' },
+
+      // === MINNESOTA ===
+      'SAINT PAUL': { state: 'MN', zip: '55101', normalize: 'Saint Paul' },
+      'ST PAUL': { state: 'MN', zip: '55101', normalize: 'Saint Paul' },
+      'MINNEAPOLIS': { state: 'MN', zip: '55401', normalize: 'Minneapolis' },
+      'ROCHESTER MN': { state: 'MN', zip: '55901', normalize: 'Rochester' },
+      'DULUTH': { state: 'MN', zip: '55802', normalize: 'Duluth' },
+
+      // === MISSISSIPPI ===
+      'JACKSON MS': { state: 'MS', zip: '39201', normalize: 'Jackson' },
+      'GULFPORT': { state: 'MS', zip: '39501', normalize: 'Gulfport' },
+      'BILOXI': { state: 'MS', zip: '39530', normalize: 'Biloxi' },
+      'HATTIESBURG': { state: 'MS', zip: '39401', normalize: 'Hattiesburg' },
+
+      // === MISSOURI ===
+      'JEFFERSON CITY': { state: 'MO', zip: '65101', normalize: 'Jefferson City' },
+      'KANSAS CITY': { state: 'MO', zip: '64106', normalize: 'Kansas City' },
+      'SAINT LOUIS': { state: 'MO', zip: '63101', normalize: 'Saint Louis' },
+      'ST LOUIS': { state: 'MO', zip: '63101', normalize: 'Saint Louis' },
+
+      // === MONTANA ===
+      'HELENA': { state: 'MT', zip: '59601', normalize: 'Helena' },
+      'BILLINGS': { state: 'MT', zip: '59101', normalize: 'Billings' },
+      'MISSOULA': { state: 'MT', zip: '59801', normalize: 'Missoula' },
+      'GREAT FALLS': { state: 'MT', zip: '59401', normalize: 'Great Falls' },
+
+      // === NEBRASKA ===
+      'LINCOLN NE': { state: 'NE', zip: '68508', normalize: 'Lincoln' },
+      'OMAHA': { state: 'NE', zip: '68102', normalize: 'Omaha' },
+      'BELLEVUE NE': { state: 'NE', zip: '68005', normalize: 'Bellevue' },
+
+      // === NEVADA ===
+      'CARSON CITY': { state: 'NV', zip: '89701', normalize: 'Carson City' },
+      'LAS VEGAS': { state: 'NV', zip: '89101', normalize: 'Las Vegas' },
+      'HENDERSON': { state: 'NV', zip: '89002', normalize: 'Henderson' },
+      'RENO': { state: 'NV', zip: '89501', normalize: 'Reno' },
+      'NORTH LAS VEGAS': { state: 'NV', zip: '89030', normalize: 'North Las Vegas' },
+
+      // === NEW HAMPSHIRE ===
+      'CONCORD NH': { state: 'NH', zip: '03301', normalize: 'Concord' },
+      'MANCHESTER NH': { state: 'NH', zip: '03101', normalize: 'Manchester' },
+      'NASHUA': { state: 'NH', zip: '03060', normalize: 'Nashua' },
+
+      // === NEW JERSEY ===
+      'TRENTON': { state: 'NJ', zip: '08608', normalize: 'Trenton' },
+      'NEWARK NJ': { state: 'NJ', zip: '07102', normalize: 'Newark' },
+      'JERSEY CITY': { state: 'NJ', zip: '07302', normalize: 'Jersey City' },
+      'PATERSON': { state: 'NJ', zip: '07501', normalize: 'Paterson' },
+      'ELIZABETH': { state: 'NJ', zip: '07201', normalize: 'Elizabeth' },
+
+      // === NEW MEXICO ===
+      'SANTA FE': { state: 'NM', zip: '87501', normalize: 'Santa Fe' },
+      'ALBUQUERQUE': { state: 'NM', zip: '87101', normalize: 'Albuquerque' },
+      'LAS CRUCES': { state: 'NM', zip: '88001', normalize: 'Las Cruces' },
+      'RIO RANCHO': { state: 'NM', zip: '87124', normalize: 'Rio Rancho' },
+
+      // === NEW YORK ===
+      'ALBANY': { state: 'NY', zip: '12207', normalize: 'Albany' },
+      'NEW YORK': { state: 'NY', zip: '10001', normalize: 'New York' },
+      'NEW YORK CITY': { state: 'NY', zip: '10001', normalize: 'New York' },
+      'BUFFALO': { state: 'NY', zip: '14202', normalize: 'Buffalo' },
+      'ROCHESTER': { state: 'NY', zip: '14604', normalize: 'Rochester' },
+      'YONKERS': { state: 'NY', zip: '10701', normalize: 'Yonkers' },
+      'SYRACUSE': { state: 'NY', zip: '13202', normalize: 'Syracuse' },
+
+      // === NORTH CAROLINA ===
+      'RALEIGH': { state: 'NC', zip: '27601', normalize: 'Raleigh' },
+      'CHARLOTTE': { state: 'NC', zip: '28202', normalize: 'Charlotte' },
+      'GREENSBORO': { state: 'NC', zip: '27401', normalize: 'Greensboro' },
+      'DURHAM': { state: 'NC', zip: '27701', normalize: 'Durham' },
+      'WINSTON SALEM': { state: 'NC', zip: '27101', normalize: 'Winston-Salem' },
+      'WINSTON-SALEM': { state: 'NC', zip: '27101', normalize: 'Winston-Salem' },
+      'FAYETTEVILLE NC': { state: 'NC', zip: '28301', normalize: 'Fayetteville' },
+      'CARY': { state: 'NC', zip: '27511', normalize: 'Cary' },
+
+      // === NORTH DAKOTA ===
+      'BISMARCK': { state: 'ND', zip: '58501', normalize: 'Bismarck' },
+      'FARGO': { state: 'ND', zip: '58102', normalize: 'Fargo' },
+      'GRAND FORKS': { state: 'ND', zip: '58201', normalize: 'Grand Forks' },
+
+      // === OHIO ===
+      'COLUMBUS OH': { state: 'OH', zip: '43215', normalize: 'Columbus' },
+      'CLEVELAND': { state: 'OH', zip: '44114', normalize: 'Cleveland' },
+      'CINCINNATI': { state: 'OH', zip: '45202', normalize: 'Cincinnati' },
+      'TOLEDO': { state: 'OH', zip: '43604', normalize: 'Toledo' },
+      'AKRON': { state: 'OH', zip: '44308', normalize: 'Akron' },
+      'DAYTON': { state: 'OH', zip: '45402', normalize: 'Dayton' },
+
+      // === OKLAHOMA ===
+      'OKLAHOMA CITY': { state: 'OK', zip: '73102', normalize: 'Oklahoma City' },
+      'TULSA': { state: 'OK', zip: '74103', normalize: 'Tulsa' },
+      'NORMAN': { state: 'OK', zip: '73069', normalize: 'Norman' },
+      'BROKEN ARROW': { state: 'OK', zip: '74012', normalize: 'Broken Arrow' },
+
+      // === OREGON ===
+      'SALEM OR': { state: 'OR', zip: '97301', normalize: 'Salem' },
+      'PORTLAND OR': { state: 'OR', zip: '97201', normalize: 'Portland' },
+      'EUGENE': { state: 'OR', zip: '97401', normalize: 'Eugene' },
+      'BEND': { state: 'OR', zip: '97701', normalize: 'Bend' },
+
+      // === PENNSYLVANIA ===
+      'HARRISBURG': { state: 'PA', zip: '17101', normalize: 'Harrisburg' },
+      'PHILADELPHIA': { state: 'PA', zip: '19102', normalize: 'Philadelphia' },
+      'PITTSBURGH': { state: 'PA', zip: '15222', normalize: 'Pittsburgh' },
+      'ALLENTOWN': { state: 'PA', zip: '18101', normalize: 'Allentown' },
+      'ERIE': { state: 'PA', zip: '16501', normalize: 'Erie' },
+
+      // === RHODE ISLAND ===
+      'PROVIDENCE': { state: 'RI', zip: '02903', normalize: 'Providence' },
+      'WARWICK': { state: 'RI', zip: '02886', normalize: 'Warwick' },
+      'CRANSTON': { state: 'RI', zip: '02910', normalize: 'Cranston' },
+
+      // === SOUTH CAROLINA ===
+      'COLUMBIA SC': { state: 'SC', zip: '29201', normalize: 'Columbia' },
+      'CHARLESTON': { state: 'SC', zip: '29401', normalize: 'Charleston' },
+      'NORTH CHARLESTON': { state: 'SC', zip: '29405', normalize: 'North Charleston' },
+      'GREENVILLE SC': { state: 'SC', zip: '29601', normalize: 'Greenville' },
+      'MYRTLE BEACH': { state: 'SC', zip: '29577', normalize: 'Myrtle Beach' },
+
+      // === SOUTH DAKOTA ===
+      'PIERRE': { state: 'SD', zip: '57501', normalize: 'Pierre' },
+      'SIOUX FALLS': { state: 'SD', zip: '57104', normalize: 'Sioux Falls' },
+      'RAPID CITY': { state: 'SD', zip: '57701', normalize: 'Rapid City' },
+
+      // === TENNESSEE ===
+      'NASHVILLE': { state: 'TN', zip: '37201', normalize: 'Nashville' },
+      'MEMPHIS': { state: 'TN', zip: '38103', normalize: 'Memphis' },
+      'KNOXVILLE': { state: 'TN', zip: '37902', normalize: 'Knoxville' },
+      'CHATTANOOGA': { state: 'TN', zip: '37402', normalize: 'Chattanooga' },
+      'MURFREESBORO': { state: 'TN', zip: '37130', normalize: 'Murfreesboro' },
+
+      // === TEXAS ===
+      'AUSTIN': { state: 'TX', zip: '78701', normalize: 'Austin' },
+      'HOUSTON': { state: 'TX', zip: '77001', normalize: 'Houston' },
+      'SAN ANTONIO': { state: 'TX', zip: '78205', normalize: 'San Antonio' },
+      'DALLAS': { state: 'TX', zip: '75201', normalize: 'Dallas' },
+      'FORT WORTH': { state: 'TX', zip: '76102', normalize: 'Fort Worth' },
+      'FT WORTH': { state: 'TX', zip: '76102', normalize: 'Fort Worth' },
+      'EL PASO': { state: 'TX', zip: '79901', normalize: 'El Paso' },
+      'ARLINGTON TX': { state: 'TX', zip: '76010', normalize: 'Arlington' },
+      'PLANO': { state: 'TX', zip: '75023', normalize: 'Plano' },
+      'FRISCO': { state: 'TX', zip: '75034', normalize: 'Frisco' },
+      'MCKINNEY': { state: 'TX', zip: '75069', normalize: 'McKinney' },
+      'CORPUS CHRISTI': { state: 'TX', zip: '78401', normalize: 'Corpus Christi' },
+
+      // === UTAH ===
+      'SALT LAKE CITY': { state: 'UT', zip: '84101', normalize: 'Salt Lake City' },
+      'WEST VALLEY CITY': { state: 'UT', zip: '84119', normalize: 'West Valley City' },
+      'PROVO': { state: 'UT', zip: '84601', normalize: 'Provo' },
+      'WEST JORDAN': { state: 'UT', zip: '84084', normalize: 'West Jordan' },
+      'OREM': { state: 'UT', zip: '84057', normalize: 'Orem' },
+      'SANDY UT': { state: 'UT', zip: '84070', normalize: 'Sandy' },
+      'ST GEORGE': { state: 'UT', zip: '84770', normalize: 'St. George' },
+
+      // === VERMONT ===
+      'MONTPELIER': { state: 'VT', zip: '05602', normalize: 'Montpelier' },
+      'BURLINGTON VT': { state: 'VT', zip: '05401', normalize: 'Burlington' },
+      'SOUTH BURLINGTON': { state: 'VT', zip: '05403', normalize: 'South Burlington' },
+
+      // === VIRGINIA ===
+      'RICHMOND': { state: 'VA', zip: '23219', normalize: 'Richmond' },
+      'VIRGINIA BEACH': { state: 'VA', zip: '23451', normalize: 'Virginia Beach' },
+      'NORFOLK': { state: 'VA', zip: '23510', normalize: 'Norfolk' },
+      'CHESAPEAKE': { state: 'VA', zip: '23320', normalize: 'Chesapeake' },
+      'ARLINGTON VA': { state: 'VA', zip: '22201', normalize: 'Arlington' },
+      'ALEXANDRIA': { state: 'VA', zip: '22314', normalize: 'Alexandria' },
+
+      // === WASHINGTON ===
+      'OLYMPIA': { state: 'WA', zip: '98501', normalize: 'Olympia' },
+      'SEATTLE': { state: 'WA', zip: '98101', normalize: 'Seattle' },
+      'SPOKANE': { state: 'WA', zip: '99201', normalize: 'Spokane' },
+      'TACOMA': { state: 'WA', zip: '98402', normalize: 'Tacoma' },
+      'VANCOUVER WA': { state: 'WA', zip: '98660', normalize: 'Vancouver' },
+      'BELLEVUE WA': { state: 'WA', zip: '98004', normalize: 'Bellevue' },
+
+      // === WEST VIRGINIA ===
+      'CHARLESTON WV': { state: 'WV', zip: '25301', normalize: 'Charleston' },
+      'HUNTINGTON WV': { state: 'WV', zip: '25701', normalize: 'Huntington' },
+      'MORGANTOWN': { state: 'WV', zip: '26505', normalize: 'Morgantown' },
+
+      // === WISCONSIN ===
+      'MADISON WI': { state: 'WI', zip: '53703', normalize: 'Madison' },
+      'MILWAUKEE': { state: 'WI', zip: '53202', normalize: 'Milwaukee' },
+      'GREEN BAY': { state: 'WI', zip: '54301', normalize: 'Green Bay' },
+      'KENOSHA': { state: 'WI', zip: '53140', normalize: 'Kenosha' },
+
+      // === WYOMING ===
+      'CHEYENNE': { state: 'WY', zip: '82001', normalize: 'Cheyenne' },
+      'CASPER': { state: 'WY', zip: '82601', normalize: 'Casper' },
+      'LARAMIE': { state: 'WY', zip: '82070', normalize: 'Laramie' },
+
+      // === DISTRICT OF COLUMBIA ===
+      'WASHINGTON': { state: 'DC', zip: '20001', normalize: 'Washington' },
+      'WASHINGTON DC': { state: 'DC', zip: '20001', normalize: 'Washington' }
     };
     const knownCities = Object.keys(cityLookup).sort((a, b) => b.length - a.length);
 
     // State abbreviations
     const stateMap = {
-      'FLORIDA': 'FL', 'GEORGIA': 'GA', 'ALABAMA': 'AL', 'CALIFORNIA': 'CA',
-      'NEW YORK': 'NY', 'TEXAS': 'TX', 'NORTH CAROLINA': 'NC', 'SOUTH CAROLINA': 'SC',
-      'VIRGINIA': 'VA', 'TENNESSEE': 'TN', 'OHIO': 'OH', 'MICHIGAN': 'MI',
-      'PENNSYLVANIA': 'PA', 'ILLINOIS': 'IL', 'NEW JERSEY': 'NJ', 'MARYLAND': 'MD'
+      'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR',
+      'CALIFORNIA': 'CA', 'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE',
+      'FLORIDA': 'FL', 'GEORGIA': 'GA', 'HAWAII': 'HI', 'IDAHO': 'ID',
+      'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA', 'KANSAS': 'KS',
+      'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+      'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS',
+      'MISSOURI': 'MO', 'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV',
+      'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ', 'NEW MEXICO': 'NM', 'NEW YORK': 'NY',
+      'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH', 'OKLAHOMA': 'OK',
+      'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+      'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT',
+      'VERMONT': 'VT', 'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV',
+      'WISCONSIN': 'WI', 'WYOMING': 'WY', 'DISTRICT OF COLUMBIA': 'DC'
     };
 
     // Initialize
@@ -2214,20 +2568,20 @@
       let detectedFormat = 'Unknown';
       const headerUpper = headers.map(h => h.toUpperCase());
 
-      // Detect Orange County NAL format (has OWN_NAME, CO_NO, PARCEL_ID columns)
+      // Detect NAL format (has OWN_NAME, CO_NO, PARCEL_ID columns)
       if (headerUpper.includes('OWN_NAME') && headerUpper.includes('CO_NO')) {
-        detectedFormat = 'Orange County NAL';
-        autoMapOrangeNAL();
+        detectedFormat = 'County NAL';
+        autoMapNAL();
       }
-      // Detect Seminole County format (has Pool column)
+      // Detect parcel format with Pool column
       else if (headers.some(h => h.toUpperCase().includes('POOL'))) {
-        detectedFormat = 'Seminole Parcels';
-        autoMapSeminole();
+        detectedFormat = 'Parcel Export';
+        autoMapByName();
       }
-      // Detect old Orange County tilde-delimited format
+      // Detect tilde-delimited county export
       else if (detectedDelimiter === '~' && headers.length > 30) {
-        detectedFormat = 'Orange County';
-        autoMapOrangeCounty();
+        detectedFormat = 'County Export';
+        autoMapByIndex();
       }
       // Generic auto-detection for any CSV
       else {
@@ -2320,7 +2674,7 @@
       });
     }
 
-    function autoMapSeminole() {
+    function autoMapByName() {
       // Map column names to their index
       const colMap = {};
       headers.forEach((h, i) => { colMap[h.toUpperCase().replace(/[^A-Z]/g, '')] = i; });
@@ -2362,14 +2716,14 @@
       }
     }
 
-    function autoMapOrangeCounty() {
+    function autoMapByIndex() {
       const indices = { mapName: 21, mapAddress1: 22, mapCity: 23, mapState: 24, mapZip: 25, mapFilter: 39, mapFilterZip: 10, mapValue: 18, mapYearBuilt: 14, mapPropAddress: 4 };
       Object.entries(indices).forEach(([id, idx]) => {
         if (idx < headers.length) document.getElementById(id).value = idx;
       });
     }
 
-    function autoMapOrangeNAL() {
+    function autoMapNAL() {
       // Map column names to their index for Orange County NAL format
       const colMap = {};
       headers.forEach((h, i) => { colMap[h.toUpperCase()] = i; });
@@ -2698,7 +3052,24 @@
       // Check if we have lookup data loaded
       const hasLookupData = Object.keys(salesLookup).length > 0 || Object.keys(featuresLookup).length > 0 || Object.keys(subdivLookup).length > 0;
 
-      const targetState = document.getElementById('targetState').value.toUpperCase().trim();
+      let targetState = document.getElementById('targetState').value.toUpperCase().trim();
+
+      // Auto-detect primary state from data if not specified
+      if (!targetState && stateIdx >= 0 && rows.length > 1) {
+        const stateCounts = {};
+        const sampleRows = rows.slice(1, Math.min(101, rows.length));
+        for (const row of sampleRows) {
+          const s = (row[stateIdx] || '').toUpperCase().trim();
+          const abbrev = s.length === 2 ? s : (stateMap[s] || '');
+          if (abbrev) stateCounts[abbrev] = (stateCounts[abbrev] || 0) + 1;
+        }
+        const detected = Object.entries(stateCounts).sort((a, b) => b[1] - a[1])[0];
+        if (detected) {
+          targetState = detected[0];
+          document.getElementById('targetState').value = targetState;
+          showToast(`Auto-detected state: ${targetState}`);
+        }
+      }
       const targetCities = document.getElementById('targetCities').value.split(',').map(c => c.trim().toUpperCase()).filter(c => c);
       const targetZips = document.getElementById('targetZips').value.split(',').map(z => z.trim()).filter(z => z);
 
@@ -3218,13 +3589,16 @@
     }
 
     // Helper functions
+    // Build dynamic city fix patterns from the top 80 longest city names (avoids regex explosion)
+    const _fixCities = knownCities.slice(0, 80).map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const _fixStates = Object.values(stateMap).join('|') + '|' + Object.keys(stateMap).join('|');
+    const _stuckSuffixPattern = new RegExp(`\\b(DR|ST|AVE|LN|CT|CIR|WAY|BLVD|RD|PL|TER)(${_fixCities})\\b`, 'gi');
+    const _stuckStatePattern = new RegExp(`\\b(${_fixCities})(${_fixStates})\\b`, 'gi');
+
     function fixStuckCityName(addr) {
-      const patterns = [
-        { pattern: /\b(DR|ST|AVE|LN|CT|CIR|WAY|BLVD|RD|PL|TER)(LONGWOOD|SANFORD|OVIEDO|ORLANDO|APOPKA|MAITLAND)\b/gi, fix: '$1 $2' },
-        { pattern: /\b(LONGWOOD|SANFORD|OVIEDO|ORLANDO)(FL|FLORIDA)\b/gi, fix: '$1 $2' }
-      ];
       let result = addr;
-      patterns.forEach(p => { result = result.replace(p.pattern, p.fix); });
+      result = result.replace(_stuckSuffixPattern, '$1 $2');
+      result = result.replace(_stuckStatePattern, '$1 $2');
       return result;
     }
 
