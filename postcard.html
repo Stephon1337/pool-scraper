@@ -2241,6 +2241,46 @@
 
         <!-- DESIGN PANEL -->
         <div class="sidebar-panel active" id="panel-design">
+
+          <!-- Quick / Advanced Mode Toggle -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 12px;background:var(--bg-hover);border-radius:8px;border:1px solid var(--border);">
+            <span style="font-size:12px;font-weight:700;color:var(--text);">Mode</span>
+            <button id="quickModeToggle" onclick="toggleQuickMode()" style="font-size:11px;padding:4px 14px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#000;font-weight:700;cursor:pointer;">
+              Switch to Advanced
+            </button>
+          </div>
+
+          <!-- QUICK MODE PANEL -->
+          <div id="quickModePanel" style="margin-bottom:16px;">
+            <div style="padding:12px;background:var(--bg-hover);border-radius:8px;border:1px solid var(--border);">
+              <p style="font-size:13px;font-weight:700;color:var(--accent);margin:0 0 12px 0;">60-Second Postcard</p>
+
+              <label style="font-size:10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Company Name</label>
+              <input type="text" id="quickCompanyName" placeholder="Your Pool Company" oninput="document.getElementById('companyName').value=this.value;saveUserInfo();renderPostcard();"
+                style="width:100%;padding:8px 10px;margin:4px 0 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box;">
+
+              <label style="font-size:10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Phone Number</label>
+              <input type="text" id="quickPhone" placeholder="(555) 123-4567" oninput="document.getElementById('phoneNumber').value=this.value;saveUserInfo();renderPostcard();"
+                style="width:100%;padding:8px 10px;margin:4px 0 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;box-sizing:border-box;">
+
+              <label style="font-size:10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Logo (Optional)</label>
+              <input type="file" id="quickLogo" accept="image/*" onchange="handleLogoUpload(this)"
+                style="width:100%;font-size:11px;padding:6px;margin:4px 0 12px;color:var(--text-secondary);box-sizing:border-box;">
+
+              <label style="font-size:10px;color:var(--text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px;">Pick a Style</label>
+              <div id="quickStylePicker" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;">
+                <!-- Populated by JS -->
+              </div>
+
+              <button onclick="generateQuickPostcard()" style="width:100%;padding:12px;background:linear-gradient(135deg, var(--accent), #6366f1);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.3px;">
+                Create My Postcard
+              </button>
+            </div>
+          </div>
+
+          <!-- ADVANCED MODE CONTROLS (hidden by default) -->
+          <div id="advancedModePanel" style="display:none;">
+
           <!-- Auto Preview Toggle -->
           <div style="margin-bottom:12px;">
             <button class="quick-btn" id="autoPreviewBtn" onclick="toggleAutoPreview()" style="width:100%;padding:12px;background:linear-gradient(135deg, var(--accent), #6366f1);">
@@ -2346,6 +2386,7 @@
               <option value="Roboto Slab">Roboto Slab</option>
             </select>
           </div>
+          </div><!-- /advancedModePanel -->
         </div>
 
         <!-- BRAND PANEL -->
@@ -4327,6 +4368,84 @@
       // Save the newly generated design to history
       saveToHistory();
     }
+
+    // ==================== QUICK MODE ====================
+    let isQuickMode = true;
+    let selectedQuickStyle = 0;
+
+    const quickModeStyles = [
+      { name: 'Pro Clean', layout: 0, theme: { primary: '#0077B6', secondary: '#CAF0F8', accent: '#00B4D8' }, gradient: 'linear-gradient(135deg,#0077B6,#00B4D8)' },
+      { name: 'Bold Impact', layout: 5, theme: { primary: '#E63946', secondary: '#F1FAEE', accent: '#FFB703' }, gradient: 'linear-gradient(135deg,#E63946,#FFB703)' },
+      { name: 'Luxury', layout: 10, theme: { primary: '#2C2C2C', secondary: '#F5F0E8', accent: '#C9A84C' }, gradient: 'linear-gradient(135deg,#2C2C2C,#C9A84C)' },
+      { name: 'Nature', layout: 15, theme: { primary: '#2D6A4F', secondary: '#D8F3DC', accent: '#52B788' }, gradient: 'linear-gradient(135deg,#2D6A4F,#52B788)' },
+      { name: 'Classic', layout: 20, theme: { primary: '#1D3557', secondary: '#F1FAEE', accent: '#457B9D' }, gradient: 'linear-gradient(135deg,#1D3557,#457B9D)' }
+    ];
+
+    function toggleQuickMode() {
+      isQuickMode = !isQuickMode;
+      const qp = document.getElementById('quickModePanel');
+      const ap = document.getElementById('advancedModePanel');
+      const btn = document.getElementById('quickModeToggle');
+      if (qp) qp.style.display = isQuickMode ? 'block' : 'none';
+      if (ap) ap.style.display = isQuickMode ? 'none' : 'block';
+      if (btn) btn.textContent = isQuickMode ? 'Switch to Advanced' : 'Switch to Quick';
+    }
+
+    function renderQuickStylePicker() {
+      const grid = document.getElementById('quickStylePicker');
+      if (!grid) return;
+      grid.innerHTML = quickModeStyles.map((s, i) =>
+        `<div onclick="selectQuickStyle(${i})" style="background:${s.gradient};color:#fff;padding:12px 8px;border-radius:8px;text-align:center;font-weight:700;font-size:12px;cursor:pointer;border:3px solid ${i === selectedQuickStyle ? '#fff' : 'transparent'};box-shadow:${i === selectedQuickStyle ? '0 0 0 2px var(--accent)' : 'none'};transition:all .2s;">${escapeHTML(s.name)}</div>`
+      ).join('');
+    }
+
+    function selectQuickStyle(index) {
+      selectedQuickStyle = index;
+      renderQuickStylePicker();
+    }
+
+    function generateQuickPostcard() {
+      const name = document.getElementById('quickCompanyName')?.value?.trim();
+      const phone = document.getElementById('quickPhone')?.value?.trim();
+      if (!name) { alert('Enter your company name'); return; }
+      if (!phone) { alert('Enter your phone number'); return; }
+
+      const style = quickModeStyles[selectedQuickStyle];
+      currentDesign.layout = style.layout;
+      currentDesign.theme = { ...style.theme };
+      currentDesign.companyName = name;
+      currentDesign.phone = phone;
+      currentDesign.poolImage = originalPoolImages[Math.floor(Math.random() * originalPoolImages.length)];
+
+      // Randomize content
+      currentDesign.headline = headlines[Math.floor(Math.random() * headlines.length)];
+      currentDesign.discount = {
+        amount: discountAmounts[Math.floor(Math.random() * discountAmounts.length)],
+        text: discountTexts[Math.floor(Math.random() * discountTexts.length)]
+      };
+      currentDesign.cta = ctas[Math.floor(Math.random() * ctas.length)];
+      currentDesign.testimonial = testimonials[Math.floor(Math.random() * testimonials.length)];
+      currentDesign.urgency = urgencyTexts[Math.floor(Math.random() * urgencyTexts.length)];
+      currentDesign.trustBadge = trustBadges[Math.floor(Math.random() * trustBadges.length)];
+      currentDesign.tagline = taglines[Math.floor(Math.random() * taglines.length)];
+
+      updateLayoutSelect();
+      updateLayoutDisplay();
+      updateColorSwatches();
+      renderPostcard();
+      saveToHistory();
+    }
+
+    // Initialize Quick Mode on load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderQuickStylePicker();
+      // Sync Quick inputs from Brand tab
+      const cn = document.getElementById('companyName');
+      const pn = document.getElementById('phoneNumber');
+      if (cn?.value) { const qc = document.getElementById('quickCompanyName'); if (qc) qc.value = cn.value; }
+      if (pn?.value) { const qp = document.getElementById('quickPhone'); if (qp) qp.value = pn.value; }
+    });
+    // ==================== END QUICK MODE ====================
 
     function toggleLock(element) {
       // Don't toggle locks when in move mode
