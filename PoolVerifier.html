@@ -942,7 +942,7 @@
             try {
                 localStorage.setItem('poolVerifierData', JSON.stringify(data));
             } catch (e) {
-                console.log('Could not save verification status:', e);
+                // Silently fail if localStorage is unavailable
             }
         }
 
@@ -1511,7 +1511,7 @@
             const mapsUrl = `https://www.google.com/maps/search/${searchQuery}/@${encodeURIComponent(centerAddr.address + ', ' + centerAddr.city)},17z`;
             window.open(mapsUrl, '_blank', 'noopener,noreferrer');
 
-            // Show the stop list in an alert for reference
+            // Show the stop list for reference (intentional: displays multi-line route list)
             alert(`📍 ${toRoute.length} STOPS (walking order):\n\n${stopList}\n\n✓ List copied to clipboard\n✓ Map opened to area`);
         }
 

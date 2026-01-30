@@ -3768,10 +3768,8 @@
         const sessionJson = JSON.stringify(session);
         localStorage.setItem('poolscraper_session', sessionJson);
         sessionStorage.setItem('poolscraper_session', sessionJson);
-        console.log(`Session saved to both storages: ${results.length} records (${(sessionJson.length / 1024).toFixed(1)} KB)`);
       } catch (e) {
         // localStorage might be full - try to clear old data and retry
-        console.log('Could not save session:', e);
         if (e.name === 'QuotaExceededError') {
           // Try clearing old export history to make room
           localStorage.removeItem('poolscraper_history');
@@ -3803,8 +3801,6 @@
 
     // Restore session on page load - try sessionStorage first (more reliable for same-tab nav)
     function restoreSession() {
-      console.log('=== RESTORE SESSION CALLED ===');
-
       // Try sessionStorage first (persists across same-tab navigation)
       let saved = sessionStorage.getItem('poolscraper_session');
       let source = 'sessionStorage';
@@ -3815,16 +3811,12 @@
         source = 'localStorage';
       }
 
-      console.log(`Checking for saved session in ${source}...`, saved ? `Found (${(saved.length/1024).toFixed(1)} KB)` : 'Not found');
-
       if (!saved) {
-        console.log('No saved session to restore from either storage');
         return false;
       }
 
       try {
         const session = JSON.parse(saved);
-        console.log('Session data:', session.results?.length, 'records from', session.timestamp);
         if (!session.results || session.results.length === 0) return false;
 
         isRestoring = true;
@@ -3857,7 +3849,6 @@
         isRestoring = false;
         return true;
       } catch (e) {
-        console.log('Could not restore session:', e);
         isRestoring = false;
         return false;
       }
@@ -5224,7 +5215,6 @@
 
         return null;
       } catch (e) {
-        console.log('Address lookup error:', e);
         return null;
       }
     }
@@ -5396,10 +5386,8 @@
         localStorage.setItem('poolscraper_session', json);
         sessionStorage.setItem('poolscraper_session', json);
 
-        console.log(`[${reason}] Session saved: ${results.length} records, ${(json.length/1024).toFixed(1)} KB`);
         return true;
       } catch (e) {
-        console.error('Failed to save session:', e);
         return false;
       }
     }
@@ -5424,7 +5412,6 @@
           const verifySession = sessionStorage.getItem('poolscraper_session');
 
           if (verifyLocal || verifySession) {
-            console.log('✓ Session verified - localStorage:', !!verifyLocal, 'sessionStorage:', !!verifySession);
             statusEl.textContent = '✓ Saved';
             statusEl.style.color = 'var(--green)';
           } else {
@@ -5475,7 +5462,6 @@
         sessionStorage.removeItem('test');
         return true;
       } catch (e) {
-        console.error('Storage not available:', e);
         return false;
       }
     }
@@ -5487,7 +5473,6 @@
       }
       const restored = restoreSession();
       if (restored) {
-        console.log('Session restored successfully');
         document.getElementById('sessionStatus').textContent = '✓ Restored';
         document.getElementById('sessionStatus').style.color = 'var(--green)';
       }

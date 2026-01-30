@@ -3235,7 +3235,19 @@
   </div>
   <button class="tips-toggle" id="tipsToggle" onclick="toggleTipsPanel()">TIPS</button>
 
+  <!-- Toast Notification -->
+  <div id="toast" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 12px 24px; border-radius: 8px; z-index: 99999; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px; max-width: 90%; text-align: center;"></div>
+
   <script>
+    // ==================== TOAST NOTIFICATION ====================
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+      toast.textContent = message;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
     // ==================== SECURITY UTILITIES ====================
     function escapeHTML(str) {
       if (typeof str !== 'string') return '';
@@ -9153,8 +9165,7 @@
         }, 100);
 
       } catch (err) {
-        console.error('QR Code generation failed:', err);
-        alert('Failed to generate QR code. Please check your input.');
+        showToast('Failed to generate QR code. Please check your input.');
       }
     }
 
@@ -9346,7 +9357,7 @@
 
       // If no images left, reset
       if (poolImages.length === 0) {
-        alert('Cannot delete all images. Resetting to original pool.');
+        showToast('Cannot delete all images. Resetting to original pool.');
         resetPoolImages();
         return;
       }
@@ -9375,7 +9386,7 @@
 
       // If no images left, reset
       if (poolImages.length === 0) {
-        alert('Cannot delete all images. Resetting to original pool.');
+        showToast('Cannot delete all images. Resetting to original pool.');
         resetPoolImages();
         return;
       }
@@ -9425,7 +9436,7 @@
             saveDeletedImages();
           }
         } catch (e) {
-          console.log('Error loading deleted images:', e);
+          // Silent fail - reset to defaults
         }
       }
     }
@@ -9863,7 +9874,7 @@
             document.getElementById('poolImageIndex').textContent = 'Custom';
           }
         } catch (e) {
-          console.log('Error loading saved data:', e);
+          // Silent fail - use defaults
         }
       }
     }
@@ -9909,7 +9920,7 @@
             Object.assign(savedTextContent, data);
           }
         } catch (e) {
-          console.log('Error loading text content:', e);
+          // Silent fail - use defaults
         }
       }
     }
@@ -10072,7 +10083,7 @@
                 const base64 = await convertImageToBase64(url);
                 el.style.backgroundImage = `url("${base64}")`;
               } catch (e) {
-                console.log('Could not convert bg:', url);
+                // Silent fail - keep original URL
               }
             })());
           }
@@ -10085,7 +10096,7 @@
               const base64 = await convertImageToBase64(el.src);
               el.src = base64;
             } catch (e) {
-              console.log('Could not convert img:', el.src);
+              // Silent fail - keep original src
             }
           })());
         }
@@ -10195,7 +10206,6 @@
             useFilePicker = true;
           } catch (e) {
             // User cancelled or not supported - fall back to downloads
-            console.log('Directory picker cancelled or not supported');
           }
         }
 
@@ -10271,13 +10281,11 @@
         }
 
         const saveLocation = useFilePicker ? 'your chosen folder' : 'your Downloads folder';
-        alert(`Done! Check ${saveLocation} for:\n• postcard-${currentSize}-FRONT.png\n• postcard-${currentSize}-BACK.png\n\nSize: ${sizeConfig.label} Postcard\nResolution: ${exportWidth} x ${exportHeight} px (300 DPI)\n\nUpload to Vistaprint - select "Scale to Fit" if prompted.`);
+        showToast(`Exported! Check ${saveLocation}.`);
 
       } catch (err) {
-        console.error('Export error:', err);
-
         // Fallback to screenshot instructions
-        alert('Auto-export failed.\n\nFIX: Upload your own pool image (external URLs cause this).\n\nOR use manual screenshot:\n1. Press Windows+Shift+S\n2. Select the postcard area\n3. Save as postcard-FRONT.png\n4. Click Back Side tab, repeat\n\nEdit outlines are now hidden.');
+        showToast('Export failed — try uploading a local pool image.');
       } finally {
         // ALWAYS restore UI state
         const frontCard = document.getElementById('frontCard');
@@ -10637,7 +10645,7 @@
       favorites.push(favorite);
       localStorage.setItem('postcardFavorites', JSON.stringify(favorites));
       updateFavoritesCount();
-      alert('Design saved to favorites!');
+      showToast('Design saved to favorites!');
     }
 
     function loadFavorite(id) {
@@ -10862,7 +10870,6 @@
         }, 2000);
 
       } catch (error) {
-        console.error('Batch export error:', error);
         btn.innerHTML = '<span>Error!</span>';
         setTimeout(() => {
           btn.innerHTML = originalText;
@@ -10901,7 +10908,7 @@
         link.href = dataUrl;
         link.click();
       } catch (error) {
-        console.error('Export error:', error);
+        // Silent fail
       }
     }
 
@@ -11127,7 +11134,7 @@
 
       document.getElementById('templateName').value = '';
       renderSavedTemplates();
-      alert('Template "' + name + '" saved!');
+      showToast('Template "' + name + '" saved!');
     }
 
     function loadTemplate(name) {
@@ -11241,7 +11248,6 @@
         }, 2000);
 
       } catch (error) {
-        console.error('PDF export error:', error);
         btn.innerHTML = '<span>Error!</span>';
         setTimeout(() => {
           btn.innerHTML = originalText;
@@ -11545,7 +11551,7 @@
       currentDesign = originalDesign;
       renderPostcard();
 
-      alert('Both versions exported!');
+      showToast('Both versions exported!');
     }
 
     // 2. ROI Calculator
@@ -12004,7 +12010,6 @@ Generated with Pool Service Postcard Generator
       const arrow = document.getElementById(sectionName + 'Arrow');
 
       if (!content || !arrow) {
-        console.warn('Toggle section not found:', sectionName);
         return;
       }
 
@@ -12229,7 +12234,7 @@ Generated with Pool Service Postcard Generator
 
       currentDesign = originalDesign;
       renderPostcard();
-      alert('All 3 drip campaign cards exported!');
+      showToast('All 3 drip campaign cards exported!');
     }
 
     // 9. Paper Texture Preview
@@ -12530,7 +12535,7 @@ Generated with Pool Service Postcard Generator
           status.textContent = `Last saved: ${time}`;
         }
       } catch (e) {
-        console.warn('Auto-save failed:', e);
+        // Silent fail - auto-save not critical
       }
     }
 
@@ -12542,19 +12547,19 @@ Generated with Pool Service Postcard Generator
           currentDesign = { ...currentDesign, ...backup.design };
           renderPostcard();
           updateAllInputs();
-          alert('Design recovered from ' + new Date(backup.timestamp).toLocaleString());
+          showToast('Design recovered from ' + new Date(backup.timestamp).toLocaleString());
         } else {
-          alert('No backup found');
+          showToast('No backup found');
         }
       } catch (e) {
-        alert('Recovery failed: ' + e.message);
+        showToast('Recovery failed: ' + e.message);
       }
     }
 
     function clearAutoSaves() {
       localStorage.removeItem('postcardAutoSave');
       document.getElementById('autoSaveStatus').textContent = 'Last saved: Never';
-      alert('Backups cleared');
+      showToast('Backups cleared');
     }
 
     function updateAllInputs() {
