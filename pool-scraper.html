@@ -191,10 +191,10 @@
   <script>if(window.self!==window.top)document.documentElement.classList.add('in-iframe');</script>
   <!-- Header -->
   <header class="header">
-    <div class="logo">💧 Aqua<span>Desk</span></div>
+    <div class="logo">💧 AquaDesk</div>
     <div class="nav-tabs" style="border-left:1px solid var(--border); margin-left:12px; padding-left:12px;">
       <a href="#" class="nav-tab active">📋 Scraper</a>
-      <a href="PoolVerifier.html" class="nav-tab" onclick="saveBeforeNav(event, this.href)">🔍 Verifier</a>
+      <a href="PoolVerifier.html" class="nav-tab" onclick="saveBeforeNav(event, this.href)">🔍 Identifier</a>
       <a href="postcard.html" class="nav-tab">🎨 Postcard</a>
       <span id="sessionStatus" style="margin-left:10px; font-size:11px; padding:3px 8px; border-radius:4px; background:var(--bg); color:var(--text-dim);"></span>
     </div>
@@ -265,6 +265,8 @@
           </div>
         </div>
 
+        <!-- Mapper Auto-Detect Banner -->
+        <div id="mapperBanner" style="display:none; padding:8px 12px; margin-bottom:6px; background:var(--surface); border:1px solid var(--border); border-radius:6px; font-size:12px;"></div>
         <!-- Column Mapping -->
         <div class="section" id="mapperSection" style="display:none;">
           <div class="section-title" onclick="toggleSection(this)">
@@ -289,6 +291,8 @@
               <div class="form-group"><label>Assessed</label><select id="mapAssessedValue"><option value="-1">--</option></select></div>
               <div class="form-group"><label>Sale Date</label><select id="mapSaleDate"><option value="-1">--</option></select></div>
               <div class="form-group"><label>Subdivision</label><select id="mapSubdivision"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Lot SqFt</label><select id="mapLotSize"><option value="-1">--</option></select></div>
+              <div class="form-group"><label>Living SqFt</label><select id="mapLivingArea"><option value="-1">--</option></select></div>
             </div>
             <div id="previewRow" class="preview-row"></div>
             <div style="display:flex; gap:6px; margin-top:8px;">
@@ -338,6 +342,21 @@
               <div class="form-group"><label>Min Days Since Sale</label><input type="number" id="minDaysSinceSale" placeholder="0"></div>
               <div class="form-group"><label>Max Days Since Sale</label><input type="number" id="maxDaysSinceSale" placeholder="730" title="e.g., 730 = 2 years"></div>
             </div>
+            <div style="margin-top:10px; padding-top:8px; border-top:1px solid var(--border);">
+              <label style="font-size:10px; color:var(--accent); text-transform:uppercase; font-weight:600;">Trigger Filters (flag qualifying properties)</label>
+              <div class="form-row" style="margin-top:6px;">
+                <div class="form-group"><label>Min Lot SqFt</label><input type="number" id="trigMinLot" placeholder="21780"></div>
+                <div class="form-group"><label>Max Lot SqFt</label><input type="number" id="trigMaxLot" placeholder=""></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Min Living SqFt</label><input type="number" id="trigMinLiving" placeholder="3000"></div>
+                <div class="form-group"><label>Max Living SqFt</label><input type="number" id="trigMaxLiving" placeholder=""></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Min Market Value</label><input type="number" id="trigMinValue" placeholder=""></div>
+                <div class="form-group"><label>Max Market Value</label><input type="number" id="trigMaxValue" placeholder=""></div>
+              </div>
+            </div>
             <div style="margin-top:8px;">
               <label style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Property Types</label>
               <div class="checkbox-row" style="margin-top:4px;">
@@ -363,7 +382,7 @@
               <label class="checkbox-item"><input type="checkbox" id="uppercase"> UPPERCASE</label>
               <label class="checkbox-item"><input type="checkbox" id="excludeNoPool" checked> Exclude No Pool</label>
             </div>
-            <p style="font-size:10px; color:var(--text-dim); margin-top:6px;">Auto-removes: PO Box, Suite/Unit, Out-of-State, Foreign. "Exclude No Pool" removes addresses marked ❌ in Verifier.</p>
+            <p style="font-size:10px; color:var(--text-dim); margin-top:6px;">Auto-removes: PO Box, Suite/Unit, Out-of-State, Foreign. "Exclude No Pool" removes addresses marked ❌ in Identifier.</p>
           </div>
         </div>
 
@@ -394,7 +413,20 @@
         <div class="empty" id="emptyState">
           <div class="empty-icon">📋</div>
           <h4>No Data Yet</h4>
-          <p>Upload a parcel file and click Process to begin</p>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px; text-align:left; max-width:320px; font-size:13px; color:var(--text-dim);">
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <span style="background:var(--accent); color:#000; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; flex-shrink:0;">1</span>
+              <span>Drop a parcel <strong style="color:var(--text);">CSV</strong> or <strong style="color:var(--text);">TXT</strong> file on the left panel</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <span style="background:var(--accent); color:#000; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; flex-shrink:0;">2</span>
+              <span>Columns auto-map to your county format — adjust if needed</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <span style="background:var(--accent); color:#000; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; flex-shrink:0;">3</span>
+              <span>Click <strong style="color:var(--text);">Process</strong> to filter pool owners</span>
+            </div>
+          </div>
         </div>
 
         <!-- Results (hidden initially) -->
@@ -408,6 +440,20 @@
             <div class="stat"><div class="stat-value red" id="statExcluded">0</div><div class="stat-label">Removed</div></div>
           </div>
 
+          <!-- Quick Stats Card -->
+          <div id="quickStatsCard" style="display:none; padding:14px 16px; margin-bottom:10px; background:linear-gradient(135deg, var(--surface) 0%, rgba(6,182,212,0.08) 100%); border:1px solid var(--border); border-radius:8px;">
+            <div id="quickStatsText" style="font-size:13px; color:var(--text); margin-bottom:8px; font-weight:600;"></div>
+            <div id="quickStatsSubdivs" style="font-size:11px; color:var(--text-dim); margin-bottom:12px; line-height:1.6;"></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="btn btn-success" onclick="quickVistaPrintExport()" style="font-weight:700;">⚡ VistaPrint Export</button>
+              <button class="btn" style="background:#06b6d4; color:#000; font-weight:600;" onclick="sendFilteredToVerifier()">📤 Send to Identifier</button>
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('advancedExportSection').classList.toggle('collapsed')" style="margin-left:auto; font-size:11px;">More Options ▼</button>
+            </div>
+          </div>
+
+          <!-- Advanced Export (collapsed by default) -->
+          <div class="section collapsed" id="advancedExportSection">
+          <div class="section-content">
           <!-- Export Bar -->
           <div class="export-bar">
             <label>Export:</label>
@@ -443,8 +489,10 @@
             <button class="btn btn-primary" onclick="downloadAllCSV()">Export All</button>
             <button class="btn" style="background:#7c3aed; color:white;" onclick="exportLabels()">Labels</button>
             <button class="btn" style="background:#10b981; color:white;" onclick="sortByRoute()">🚶 Subdiv Route</button>
-            <button class="btn" style="background:#06b6d4; color:#000; font-weight:600;" onclick="sendFilteredToVerifier()">📤 Send to Verifier</button>
+            <button class="btn" style="background:#06b6d4; color:#000; font-weight:600;" onclick="sendFilteredToVerifier()">📤 Send to Identifier</button>
           </div>
+          </div><!-- end section-content -->
+          </div><!-- end advancedExportSection -->
 
           <!-- Filter Bar -->
           <div class="filter-bar">
@@ -455,6 +503,7 @@
               <span class="chip orange" onclick="setFilter('business')">Business</span>
               <span class="chip red" onclick="setFilter('absentee')">Absentee</span>
               <span class="chip green" onclick="setFilter('owner')">Owner</span>
+              <span class="chip" style="border-color:#f59e0b;" onclick="setFilter('triggered')">⚡ Triggered</span>
             </div>
           </div>
 
@@ -483,12 +532,14 @@
                 <tr>
                   <th style="width:50px;">Act</th>
                   <th class="sortable" onclick="sortTable('recipient')">Recipient <span class="sort-icon">↕</span></th>
-                  <th class="sortable" onclick="sortTable('address')">Address <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('propertyAddress')">Prop Addr <span class="sort-icon">↕</span></th>
+                  <th class="sortable" onclick="sortTable('mailingAddress')">Mail Addr <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('city')">City <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('state')">St <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('zipcode')">Zip <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('propertyValue')">Value <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('subdivision')">Subdiv <span class="sort-icon">↕</span></th>
+                  <th>Triggers</th>
                   <th class="sortable" onclick="sortTable('poolAge')">Age <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('saleDate')">Sold <span class="sort-icon">↕</span></th>
                   <th class="sortable" onclick="sortTable('isAbsentee')">Type <span class="sort-icon">↕</span></th>
@@ -547,6 +598,28 @@
         <div class="panel-card" style="text-align:center; padding:16px; cursor:pointer;" onclick="openRoiCalculator()">
           <div style="font-size:28px; font-weight:700; color:var(--orange);" id="campStatRoi">0%</div>
           <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">ROI 💰</div>
+        </div>
+      </div>
+
+      <!-- Quick Log Response -->
+      <div class="panel-card" style="margin-bottom:16px;" id="quickLogForm">
+        <h3 style="margin-bottom:12px;">📞 Quick Log Response</h3>
+        <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+          <div style="flex:1; min-width:160px;">
+            <label style="font-size:10px; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:4px;">Campaign</label>
+            <select id="quickLogCampaign" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:12px;">
+              <option value="">Select campaign...</option>
+            </select>
+          </div>
+          <div style="min-width:80px;">
+            <label style="font-size:10px; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:4px;">Calls</label>
+            <input type="number" id="quickLogCalls" min="0" value="1" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:12px;">
+          </div>
+          <div style="min-width:100px;">
+            <label style="font-size:10px; text-transform:uppercase; color:var(--text-dim); display:block; margin-bottom:4px;">Revenue ($)</label>
+            <input type="number" id="quickLogRevenue" min="0" step="0.01" placeholder="0.00" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:12px;">
+          </div>
+          <button class="btn btn-primary" onclick="submitQuickLog()" style="padding:8px 16px; white-space:nowrap;">Save</button>
         </div>
       </div>
 
@@ -661,7 +734,7 @@
             <li><strong>No Business</strong> - Exclude commercial properties</li>
             <li><strong>Absentee Only</strong> - Only owners who don't live at the property</li>
             <li><strong>UPPERCASE</strong> - Format addresses in uppercase</li>
-            <li><strong>Exclude No Pool</strong> - Skip addresses marked ❌ in Pool Verifier</li>
+            <li><strong>Exclude No Pool</strong> - Skip addresses marked ❌ in Pool Identifier</li>
           </ul>
 
           <h4 style="color:var(--text); margin:16px 0 8px;">5. Process & Review</h4>
@@ -679,7 +752,7 @@
             <li><strong>Export All</strong> - Download all processed records</li>
             <li><strong>Recyclable Only</strong> - Re-mail addresses after 30+ days</li>
             <li><strong>Labels</strong> - Avery 5160 format for printing</li>
-            <li><strong>Sync to Verifier</strong> - Send to Pool Verifier for visual confirmation</li>
+            <li><strong>Sync to Identifier</strong> - Send to Pool Identifier for visual confirmation</li>
             <li><strong>✓ Validate USPS</strong> - Verify addresses are deliverable</li>
           </ul>
 
@@ -698,7 +771,7 @@
             <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>P</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Process file</td></tr>
             <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>E</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Export CSV</td></tr>
             <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>R</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Export Recyclable</td></tr>
-            <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>V</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Sync to Verifier</td></tr>
+            <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>V</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Sync to Identifier</td></tr>
             <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>A</kbd> / <kbd>D</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Previous / Next page</td></tr>
             <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>/</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Focus search</td></tr>
             <tr><td style="padding:4px; border-bottom:1px solid var(--border);"><kbd>Esc</kbd></td><td style="padding:4px; border-bottom:1px solid var(--border);">Clear all filters</td></tr>
@@ -709,8 +782,8 @@
           <ul style="margin-left:20px;">
             <li>New owners (< 2 years) are often the best leads - they inherited pool problems</li>
             <li>Absentee owners need pool service more - they can't maintain it themselves</li>
-            <li>Use Pool Verifier to visually confirm pools exist before mailing</li>
-            <li>Addresses marked ❌ No Pool in Verifier are auto-excluded</li>
+            <li>Use Pool Identifier to visually confirm pools exist before mailing</li>
+            <li>Addresses marked ❌ No Pool in Identifier are auto-excluded</li>
             <li>1,200+ cities across all 50 states are auto-normalized</li>
           </ul>
         </div>
@@ -819,15 +892,23 @@
     let currentCityFilter = null;
     let detectedDelimiter = ',';
 
+    // Constants
+    const VERIFY_STATUS = Object.freeze({ VERIFIED: 'verified', NO_POOL: 'no-pool' });
+    const TOAST_DURATION_MS = 3000;
+    const PROGRESS_UPDATE_INTERVAL = 1000;
+    const MIN_YEAR_BUILT = 1800;
+    const EARTH_RADIUS_KM = 6371;
+    const DEFAULT_RECYCLE_DAYS = 30;
+
     // HTML escape for XSS prevention
     function escapeHtml(str) {
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    let excludeAddresses = JSON.parse(localStorage.getItem('poolscraper_exclude') || '[]');
-    let exportHistory = JSON.parse(localStorage.getItem('poolscraper_history') || '[]');
-    let savedPresets = JSON.parse(localStorage.getItem('poolscraper_presets') || '{}');
+    let excludeAddresses = []; try { excludeAddresses = JSON.parse(localStorage.getItem('poolscraper_exclude') || '[]'); } catch(e){ console.warn('[scraper] exclude parse:', e.message); }
+    let exportHistory = []; try { exportHistory = JSON.parse(localStorage.getItem('poolscraper_history') || '[]'); } catch(e){ console.warn('[scraper] history parse:', e.message); }
+    let savedPresets = {}; try { savedPresets = JSON.parse(localStorage.getItem('poolscraper_presets') || '{}'); } catch(e){ console.warn('[scraper] presets parse:', e.message); }
 
     // Lookup data from additional files (keyed by parcel ID)
     let salesLookup = {};  // parcel ID -> {saleDate, salePrice, saleQual}
@@ -835,10 +916,10 @@
     let subdivLookup = {};  // parcel ID -> {subdivision, neighborhood}
 
     // Campaign tracking
-    let campaigns = JSON.parse(localStorage.getItem('postcard_campaigns') || '[]');
+    let campaigns = []; try { campaigns = JSON.parse(localStorage.getItem('poolscraper_campaigns') || '[]'); } catch(e){ console.warn('[scraper] campaigns parse:', e.message); }
 
     // Mailed tracking with counts and dates
-    let mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}');
+    let mailedTracker = {}; try { mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}'); } catch(e){ console.warn('[scraper] mailed parse:', e.message); }
 
     // Migrate old format
     const oldMailed = JSON.parse(localStorage.getItem('poolscraper_mailed') || '[]');
@@ -852,6 +933,25 @@
     }
 
     let mailedAddresses = Object.keys(mailedTracker);
+
+    // Load pool verifier status (verified/no-pool)
+    let verifierStatus = {};
+    try { verifierStatus = JSON.parse(localStorage.getItem('poolVerifierData') || '{}'); } catch (e) { console.warn('[scraper] verifier status parse:', e.message); }
+
+    // Sync mailedTracker across tabs (prevents phantom state when both scraper and verifier are open)
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'poolscraper_mailed_v2' && e.newValue) {
+        try {
+          mailedTracker = JSON.parse(e.newValue);
+          mailedAddresses = Object.keys(mailedTracker);
+          if (typeof renderTable === 'function' && filteredResults.length > 0) renderTable();
+        } catch (err) { console.warn('[scraper] mailed sync:', err.message); }
+      }
+      if (e.key === 'poolVerifierData' && e.newValue) {
+        try { verifierStatus = JSON.parse(e.newValue); } catch (err) { console.warn('[scraper] verifier sync:', err.message); }
+        if (typeof renderTable === 'function' && filteredResults.length > 0) renderTable();
+      }
+    });
 
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -2306,6 +2406,10 @@
       'WASHINGTON DC': { state: 'DC', zip: '20001', normalize: 'Washington' }
     };
     const knownCities = Object.keys(cityLookup).sort((a, b) => b.length - a.length);
+    const knownCityPatterns = knownCities.map(c => ({
+      name: c,
+      pattern: new RegExp('\\b' + c.replace(/\s+/g, '\\s+') + '\\b', 'i')
+    }));
 
     // State abbreviations
     const stateMap = {
@@ -2346,11 +2450,13 @@
     }
 
     // Toast
-    function showToast(msg) {
+    let _toastTimer = null;
+    function showToast(msg, duration) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', 3000);
+      if (_toastTimer) clearTimeout(_toastTimer);
+      if (duration !== 0) _toastTimer = setTimeout(() => toast.style.display = 'none', duration || TOAST_DURATION_MS);
     }
 
     // File handling
@@ -2607,6 +2713,15 @@
       document.getElementById('mapperSection').style.display = 'block';
       document.getElementById('lookupSection').style.display = 'block';
 
+      // Auto-collapse mapper if format was recognized (not Unknown)
+      if (detectedFormat !== 'Unknown' && requiredMapped) {
+        document.getElementById('mapperSection').classList.add('collapsed');
+        document.getElementById('mapperBanner').innerHTML = `<span style="color:var(--green);">✓ ${detectedFormat}</span> — ${mappedCount} columns mapped. <span style="color:var(--green); font-weight:600;">Ready to process</span> <a href="#" onclick="event.preventDefault(); document.getElementById('mapperSection').classList.remove('collapsed'); this.parentElement.style.display='none';" style="color:var(--accent); margin-left:8px;">Customize</a>`;
+        document.getElementById('mapperBanner').style.display = 'block';
+      } else {
+        document.getElementById('mapperBanner').style.display = 'none';
+      }
+
       // Populate main key column selector for lookup joins and auto-select parcel ID
       const keySelect = document.getElementById('mainKeyCol');
       keySelect.innerHTML = '<option value="-1">--</option>';
@@ -2659,7 +2774,7 @@
     }
 
     function populateMappers() {
-      const selects = ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapFilter', 'mapFilterZip', 'mapValue', 'mapYearBuilt', 'mapPropAddress', 'mapPropCity', 'mapPropState', 'mapPropType', 'mapAssessedValue', 'mapSaleDate', 'mapSubdivision'];
+      const selects = ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapFilter', 'mapFilterZip', 'mapValue', 'mapYearBuilt', 'mapPropAddress', 'mapPropCity', 'mapPropState', 'mapPropType', 'mapAssessedValue', 'mapSaleDate', 'mapSubdivision', 'mapLotSize', 'mapLivingArea'];
       selects.forEach(id => {
         const select = document.getElementById(id);
         const val = select.value;
@@ -2696,6 +2811,8 @@
         mapAssessedValue: ['ASSESSEDVALUE', 'ASSESSED', 'AV', 'TOTALASSESSED'],
         mapFilter: ['POOL', 'HASPOOL', 'POOLIND', 'SWIMMINGPOOL'],
         mapSubdivision: ['SUBDIVISION', 'SUBDIV', 'SUBDIVISIONNAME', 'SUBNAME', 'LEGAL', 'LEGALSUBDIV'],
+        mapLotSize: ['LANDSQFT', 'LAND_SQFT', 'LOTSIZE', 'LOT_SIZE', 'LOTSQFT', 'LOT_SQFT', 'LANDAREA', 'LAND_AREA', 'NO_LAND_UNITS'],
+        mapLivingArea: ['TOT_LVG_AREA', 'TOTLVGAREA', 'HEATEDAREA', 'HEATED_AREA', 'LIVINGSQFT', 'LIVING_SQFT', 'LIVINGAREA', 'LIVING_AREA', 'BLDG_SQFT'],
         mainKeyCol: ['PARCELID', 'PARID', 'PARCEL', 'PARCELNUMBER', 'ACCOUNTNO', 'ACCTNO', 'APN', 'FOESSION', 'ALTKEY', 'ACCOUNTNUM']
       };
 
@@ -2747,6 +2864,8 @@
         mapFilter: ['S_LEGAL'],  // Pool keywords will be searched in legal description
         mapSaleDate: ['SALE_DATE', 'SALEDT', 'S_DATE', 'SALE_DT', 'LAST_SALE_DATE', 'QUAL_SALE_DATE'],
         mapSubdivision: ['SUBDIVISION', 'SUBDIV', 'S_LEGAL', 'LEGAL_DESC'],
+        mapLotSize: ['LAND_SQFT', 'NO_LAND_UNITS'],
+        mapLivingArea: ['TOT_LVG_AREA'],
         mainKeyCol: ['PARCEL_ID', 'PARCELID', 'PARID', 'PARCEL', 'CO_NO', 'APN']
       };
 
@@ -2880,7 +2999,7 @@
         if (settings.allowVacant !== undefined) document.getElementById('allowVacant').checked = settings.allowVacant;
         if (settings.allowOther !== undefined) document.getElementById('allowOther').checked = settings.allowOther;
         if (settings.absenteeOnly !== undefined) document.getElementById('absenteeOnly').checked = settings.absenteeOnly;
-      } catch (e) {}
+      } catch (e) { console.warn('[scraper] settings restore:', e.message); }
     }
 
     function updateSamplePreview() {
@@ -2960,7 +3079,7 @@
       const name = document.getElementById('presetName').value.trim();
       if (!name) { showToast('Enter a preset name'); return; }
       const preset = {};
-      ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapFilter', 'mapFilterZip', 'mapValue', 'mapYearBuilt', 'mapPropAddress', 'mapPropCity', 'mapPropState', 'mapPropType', 'mapAssessedValue', 'mapSaleDate', 'mapSubdivision'].forEach(id => {
+      ['mapName', 'mapAddress1', 'mapAddress2', 'mapCity', 'mapState', 'mapZip', 'mapFilter', 'mapFilterZip', 'mapValue', 'mapYearBuilt', 'mapPropAddress', 'mapPropCity', 'mapPropState', 'mapPropType', 'mapAssessedValue', 'mapSaleDate', 'mapSubdivision', 'mapLotSize', 'mapLivingArea'].forEach(id => {
         preset[id] = document.getElementById(id).value;
       });
       savedPresets[name] = preset;
@@ -3047,7 +3166,18 @@
       const assessedIdx = parseInt(document.getElementById('mapAssessedValue').value);
       const saleDateIdx = parseInt(document.getElementById('mapSaleDate').value);
       const subdivisionIdx = parseInt(document.getElementById('mapSubdivision').value);
+      const lotSizeIdx = parseInt(document.getElementById('mapLotSize').value);
+      const livingAreaIdx = parseInt(document.getElementById('mapLivingArea').value);
       const mainKeyIdx = parseInt(document.getElementById('mainKeyCol').value);
+
+      // Trigger thresholds
+      const trigMinLot = parseInt(document.getElementById('trigMinLot').value) || 0;
+      const trigMaxLot = parseInt(document.getElementById('trigMaxLot').value) || Infinity;
+      const trigMinLiving = parseInt(document.getElementById('trigMinLiving').value) || 0;
+      const trigMaxLiving = parseInt(document.getElementById('trigMaxLiving').value) || Infinity;
+      const trigMinValue = parseInt(document.getElementById('trigMinValue').value) || 0;
+      const trigMaxValue = parseInt(document.getElementById('trigMaxValue').value) || Infinity;
+      const hasTriggerFilters = trigMinLot > 0 || trigMaxLot < Infinity || trigMinLiving > 0 || trigMaxLiving < Infinity || trigMinValue > 0 || trigMaxValue < Infinity;
 
       // Check if we have lookup data loaded
       const hasLookupData = Object.keys(salesLookup).length > 0 || Object.keys(featuresLookup).length > 0 || Object.keys(subdivLookup).length > 0;
@@ -3095,17 +3225,17 @@
       const excludeNoPool = document.getElementById('excludeNoPool').checked;
       const skipMailed = false; // Handled in export controls instead
 
-      // Load "No Pool" addresses from Verifier
+      // Load "No Pool" addresses from Identifier
       const verifierData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}');
       const noPoolSet = new Set();
       if (excludeNoPool) {
         Object.entries(verifierData).forEach(([key, data]) => {
-          if (data.status === 'no-pool') {
+          if (data.status === VERIFY_STATUS.NO_POOL) {
             noPoolSet.add(key);
           }
         });
         if (noPoolSet.size > 0) {
-          showToast(`Excluding ${noPoolSet.size} "No Pool" addresses from Verifier`);
+          showToast(`Excluding ${noPoolSet.size} "No Pool" addresses from Identifier`);
         }
       }
 
@@ -3129,7 +3259,7 @@
       const total = parsedRows.length - startIdx;
 
       for (let i = startIdx; i < parsedRows.length; i++) {
-        if (i % 1000 === 0) {
+        if (i % PROGRESS_UPDATE_INTERVAL === 0) {
           progressFill.style.width = `${((i - startIdx) / total * 100).toFixed(0)}%`;
           progressText.textContent = `Processing ${i.toLocaleString()} of ${parsedRows.length.toLocaleString()}...`;
           await new Promise(r => setTimeout(r, 0));
@@ -3182,7 +3312,7 @@
         const maxPoolAgeSet = document.getElementById('maxPoolAge').value !== '';
         if (yearIdx >= 0 && (minPoolAgeSet || maxPoolAgeSet)) {
           const yearBuilt = parseInt((row[yearIdx] || '0').replace(/[^0-9]/g, '')) || 0;
-          if (yearBuilt > 1800) {
+          if (yearBuilt > MIN_YEAR_BUILT) {
             const poolAge = currentYear - yearBuilt;
             if (poolAge < minPoolAge || poolAge > maxPoolAge) continue;
           }
@@ -3290,10 +3420,8 @@
         }
 
         if (!city) {
-          const addrUpper = address1.toUpperCase();
-          for (const cityName of knownCities) {
-            const cityPattern = new RegExp('\\b' + cityName.replace(/\s+/g, '\\s+') + '\\b', 'i');
-            if (cityPattern.test(addrUpper)) {
+          for (const { name: cityName, pattern: cityPattern } of knownCityPatterns) {
+            if (cityPattern.test(address1)) {
               const lookup = cityLookup[cityName];
               city = (lookup && lookup.normalize) ? lookup.normalize : cityName;
               address1 = address1.replace(cityPattern, '').replace(/\s+/g, ' ').trim();
@@ -3456,10 +3584,38 @@
         let isAbsentee = false;
 
         if (mailAddr && propAddr) {
-          // Compare mailing address to property address
-          const mailNorm = mailAddr.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          const propNorm = propAddr.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          isAbsentee = mailNorm.substring(0, 15) !== propNorm.substring(0, 15);
+          // Normalize street suffixes for comparison
+          const normAddr = (s) => {
+            return s.toUpperCase()
+              .replace(/\bCIRCLE\b/g, 'CIR').replace(/\bDRIVE\b/g, 'DR')
+              .replace(/\bSTREET\b/g, 'ST').replace(/\bAVENUE\b/g, 'AVE')
+              .replace(/\bBOULEVARD\b/g, 'BLVD').replace(/\bLANE\b/g, 'LN')
+              .replace(/\bROAD\b/g, 'RD').replace(/\bCOURT\b/g, 'CT')
+              .replace(/\bPLACE\b/g, 'PL').replace(/\bTERRACE\b/g, 'TER')
+              .replace(/\bPARKWAY\b/g, 'PKWY').replace(/\bWAY\b/g, 'WAY')
+              .replace(/\bTRAIL\b/g, 'TRL').replace(/\bPOINT\b/g, 'PT')
+              .replace(/[^A-Z0-9]/g, '');
+          };
+
+          const mailNorm = normAddr(mailAddr);
+          const propNorm = normAddr(propAddr);
+          const mailZipVal = zipIdx >= 0 ? (row[zipIdx] || '').trim().substring(0, 5) : '';
+          const propZipVal = (propZip || '').substring(0, 5);
+
+          // PO Box in same zip = likely lives at property
+          const isPOBox = /^P\.?O\.?\s*BOX|POST\s*OFFICE/i.test(mailAddr);
+
+          if (mailNorm === propNorm) {
+            isAbsentee = false;
+          } else if (isPOBox && mailZipVal && propZipVal && mailZipVal === propZipVal) {
+            // PO Box in same zip code — owner likely lives at property
+            isAbsentee = false;
+          } else if (mailNorm.substring(0, 12) === propNorm.substring(0, 12)) {
+            // First 12 chars match after normalization — likely same address with formatting diff
+            isAbsentee = false;
+          } else {
+            isAbsentee = true;
+          }
         }
 
         if (absenteeOnly && !isAbsentee) continue;
@@ -3505,6 +3661,22 @@
           }
         }
 
+        // Parse lot size and living area
+        const lotSizeRaw = lotSizeIdx >= 0 ? parseInt((row[lotSizeIdx] || '0').replace(/[^0-9]/g, '')) || 0 : 0;
+        const livingAreaRaw = livingAreaIdx >= 0 ? parseInt((row[livingAreaIdx] || '0').replace(/[^0-9]/g, '')) || 0 : 0;
+        const marketValueRaw = valueIdx >= 0 ? parseInt((row[valueIdx] || '0').replace(/[^0-9]/g, '')) || 0 : 0;
+
+        // Build trigger reasons
+        const triggers = [];
+        if (hasTriggerFilters) {
+          if (lotSizeRaw > 0 && lotSizeRaw >= trigMinLot && lotSizeRaw <= trigMaxLot)
+            triggers.push(`Lot ${lotSizeRaw.toLocaleString()} sqft`);
+          if (livingAreaRaw > 0 && livingAreaRaw >= trigMinLiving && livingAreaRaw <= trigMaxLiving)
+            triggers.push(`Living ${livingAreaRaw.toLocaleString()} sqft`);
+          if (marketValueRaw > 0 && marketValueRaw >= trigMinValue && marketValueRaw <= trigMaxValue)
+            triggers.push(`Value $${marketValueRaw.toLocaleString()}`);
+        }
+
         results.push({
           recipient: formatted.recipient,
           company: formatted.company,
@@ -3520,7 +3692,12 @@
           saleDate: saleDate,
           daysSinceSale: daysSinceSale,
           isAbsentee: isAbsentee,
+          propertyAddress: propAddr ? (uppercase ? propAddr.toUpperCase() : toTitleCase(propAddr)) : '',
+          mailingAddress: mailAddr ? (uppercase ? mailAddr.toUpperCase() : toTitleCase(mailAddr)) : '',
           subdivision: subdivision,
+          lotSize: lotSizeRaw,
+          livingArea: livingAreaRaw,
+          triggers: triggers,
           flags: flags,
           notes: ''
         });
@@ -4047,12 +4224,23 @@
         'Un ': 'Unit ', 'Ut ': 'Unit '
       };
 
-      let result = str;
+      // Build word-level lookup (strip trailing spaces/dots from keys)
+      const wordMap = {};
       for (const [abbr, full] of Object.entries(abbrevs)) {
-        // Case-insensitive replacement
-        const regex = new RegExp(abbr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-        result = result.replace(regex, full);
+        const key = abbr.replace(/[\s.$]+$/, '').toUpperCase();
+        wordMap[key] = full.trim();
       }
+
+      // Replace each word if it matches an abbreviation
+      let result = str.replace(/\b([A-Za-z]+)\b/g, (match) => {
+        const upper = match.toUpperCase();
+        if (wordMap[upper]) {
+          // Preserve original casing style (title case)
+          const expanded = wordMap[upper];
+          return expanded.charAt(0).toUpperCase() + expanded.slice(1).toLowerCase();
+        }
+        return match;
+      });
       return result.trim();
     }
 
@@ -4101,14 +4289,50 @@
 
       applyFilter();
       generateExportSummary();
+      populateQuickStats();
 
-      // Auto-save session so data persists when switching to Verifier (but not when restoring)
+      // Auto-save session so data persists when switching to Identifier (but not when restoring)
       if (!isRestoring) {
         saveSession(stats);
       }
     }
 
-    // Save session data to localStorage
+    function populateQuickStats() {
+      // Use subdivision-filtered results so stats respect picker selections
+      updateSelectedStats();
+      document.getElementById('quickStatsCard').style.display = 'block';
+    }
+
+    // IndexedDB helpers for large dataset persistence (localStorage caps at ~5MB)
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('PoolScraperDB', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('sessions');
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function saveToIDB(data) {
+      try {
+        const db = await openDB();
+        const tx = db.transaction('sessions', 'readwrite');
+        tx.objectStore('sessions').put(data, 'current');
+        await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
+        db.close();
+      } catch (e) { console.warn('[scraper] IDB save:', e.message); }
+    }
+    async function loadFromIDB() {
+      try {
+        const db = await openDB();
+        const tx = db.transaction('sessions', 'readonly');
+        const req = tx.objectStore('sessions').get('current');
+        const result = await new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = rej; });
+        db.close();
+        return result || null;
+      } catch (e) { console.warn('[scraper] IDB load:', e.message); return null; }
+    }
+
+    // Save session data to localStorage + IndexedDB
     function saveSession(stats) {
       if (results.length === 0) return;
 
@@ -4128,7 +4352,12 @@
           saleDate: r.saleDate,
           daysSinceSale: r.daysSinceSale,
           isAbsentee: r.isAbsentee,
+          propertyAddress: r.propertyAddress || '',
+          mailingAddress: r.mailingAddress || '',
           subdivision: r.subdivision,
+          lotSize: r.lotSize || 0,
+          livingArea: r.livingArea || 0,
+          triggers: r.triggers || [],
           flags: r.flags || [],
           notes: r.notes
         }));
@@ -4136,96 +4365,93 @@
         const session = {
           results: slimResults,
           stats: stats || { total: 0, matches: results.length, dupes: 0, biz: 0, excluded: 0 },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          cityFilter: currentCityFilter || null,
+          zipFilter: currentZipFilter || null,
+          activeFilter: currentFilter || 'all'
         };
 
         const sessionJson = JSON.stringify(session);
         localStorage.setItem('poolscraper_session', sessionJson);
         sessionStorage.setItem('poolscraper_session', sessionJson);
+        // Also save to IndexedDB for large datasets
+        saveToIDB(session);
       } catch (e) {
-        // localStorage might be full - try to clear old data and retry
+        // localStorage full — save full dataset to IndexedDB (no size limit)
+        saveToIDB(session);
         if (e.name === 'QuotaExceededError') {
-          // Try clearing old export history to make room
           localStorage.removeItem('poolscraper_history');
           try {
             const partialSession = JSON.stringify({
-              results: results.slice(0, 5000), // Save at least some data
+              results: results.slice(0, 5000),
               stats: stats,
               timestamp: new Date().toISOString()
             });
             localStorage.setItem('poolscraper_session', partialSession);
             sessionStorage.setItem('poolscraper_session', partialSession);
-            showToast('Session partially saved (storage limit)');
+            showToast('Large dataset — saved to IndexedDB + partial localStorage');
           } catch (e2) {
-            // At least try sessionStorage which might have more room
-            try {
-              sessionStorage.setItem('poolscraper_session', JSON.stringify({
-                results: results.slice(0, 2000),
-                stats: stats,
-                timestamp: new Date().toISOString()
-              }));
-              showToast('Session partially saved to session storage');
-            } catch (e3) {
-              showToast('Could not save session - storage full');
-            }
+            showToast('Saved to IndexedDB (localStorage full)');
           }
         }
       }
     }
 
-    // Restore session on page load - try sessionStorage first (more reliable for same-tab nav)
-    function restoreSession() {
-      // Try sessionStorage first (persists across same-tab navigation)
-      let saved = sessionStorage.getItem('poolscraper_session');
-      let source = 'sessionStorage';
+    // Apply a parsed session object to app state
+    function applySession(session, source) {
+      if (!session || !session.results || session.results.length === 0) return false;
+      isRestoring = true;
+      results = session.results;
 
-      // Fall back to localStorage if sessionStorage is empty
+      let bizCount = 0;
+      results.forEach(r => {
+        if (!r.flags) {
+          r.flags = [];
+          const isBusiness = isBusinessName(r.company || r.recipient);
+          if (isBusiness) { r.flags.push('BIZ'); bizCount++; }
+          if (r.isAbsentee) r.flags.push('ABSENTEE');
+        } else if (r.flags.includes('BIZ')) { bizCount++; }
+      });
+
+      currentCityFilter = session.cityFilter || null;
+      currentZipFilter = session.zipFilter || null;
+      currentFilter = session.activeFilter || 'all';
+      filteredResults = [...results];
+      const stats = session.stats || { total: 0, matches: results.length, dupes: 0, biz: bizCount, excluded: 0 };
+      if (!session.results[0]?.flags) stats.biz = bizCount;
+      showResults(stats);
+      showToast(`Restored ${results.length} records (${source})`);
+      isRestoring = false;
+      return true;
+    }
+
+    // Restore session: sessionStorage → localStorage → IndexedDB
+    async function restoreSession() {
+      // Try sync sources first
+      let saved = sessionStorage.getItem('poolscraper_session');
+      let source = 'session';
       if (!saved) {
         saved = localStorage.getItem('poolscraper_session');
-        source = 'localStorage';
+        source = 'local';
       }
 
-      if (!saved) {
-        return false;
+      if (saved) {
+        try {
+          if (applySession(JSON.parse(saved), source)) return true;
+        } catch (e) {
+          console.warn('[scraper] sync restore failed:', e.message);
+        }
       }
 
+      // Fall back to IndexedDB for large datasets
       try {
-        const session = JSON.parse(saved);
-        if (!session.results || session.results.length === 0) return false;
-
-        isRestoring = true;
-        results = session.results;
-
-        // Regenerate flags for older sessions that don't have them
-        let bizCount = 0;
-        results.forEach(r => {
-          if (!r.flags) {
-            r.flags = [];
-            // Check if this is a business name
-            const isBusiness = isBusinessName(r.company || r.recipient);
-            if (isBusiness) {
-              r.flags.push('BIZ');
-              bizCount++;
-            }
-            if (r.isAbsentee) r.flags.push('ABSENTEE');
-          } else if (r.flags.includes('BIZ')) {
-            bizCount++;
-          }
-        });
-
-        filteredResults = [...results];
-
-        const stats = session.stats || { total: 0, matches: results.length, dupes: 0, biz: bizCount, excluded: 0 };
-        // Update biz count if we regenerated flags
-        if (!session.results[0]?.flags) stats.biz = bizCount;
-        showResults(stats);
-        showToast(`Restored ${results.length} records`);
-        isRestoring = false;
-        return true;
+        const idbSession = await loadFromIDB();
+        if (idbSession && applySession(idbSession, 'IndexedDB')) return true;
       } catch (e) {
-        isRestoring = false;
-        return false;
+        console.warn('[scraper] IDB restore failed:', e.message);
       }
+
+      return false;
     }
 
     // Clear session when clearing all (from both storages)
@@ -4285,13 +4511,14 @@
         if (currentZipFilter && r.zipcode !== currentZipFilter) return false;
         if (currentCityFilter && r.city.toUpperCase() !== currentCityFilter.toUpperCase()) return false;
         if (searchQuery) {
-          const searchStr = `${r.recipient} ${r.address} ${r.city} ${r.zipcode} ${r.subdivision || ''} ${r.notes || ''}`.toLowerCase();
+          const searchStr = `${r.recipient} ${r.address} ${r.propertyAddress || ''} ${r.mailingAddress || ''} ${r.city} ${r.zipcode} ${r.subdivision || ''} ${r.notes || ''}`.toLowerCase();
           if (!searchStr.includes(searchQuery)) return false;
         }
         if (currentFilter === 'residential' && r.flags.includes('BIZ')) return false;
         if (currentFilter === 'business' && !r.flags.includes('BIZ')) return false;
         if (currentFilter === 'absentee' && !r.isAbsentee) return false;
         if (currentFilter === 'owner' && r.isAbsentee) return false;
+        if (currentFilter === 'triggered' && (!r.triggers || r.triggers.length === 0)) return false;
         return true;
       });
 
@@ -4316,34 +4543,44 @@
     }
 
     function renderTable() {
+      // Refresh verifier status on each render
+      try { verifierStatus = JSON.parse(localStorage.getItem('poolVerifierData') || '{}'); } catch (e) { console.warn('[scraper] verifier refresh:', e.message); }
+      // Use subdivision-filtered view so table reflects picker selections
+      const displayResults = getSubdivFilteredResults();
       // Calculate pagination
-      totalPages = Math.ceil(filteredResults.length / perPage) || 1;
+      totalPages = Math.ceil(displayResults.length / perPage) || 1;
       if (currentPage > totalPages) currentPage = totalPages;
       if (currentPage < 1) currentPage = 1;
 
       const startIdx = (currentPage - 1) * perPage;
       const endIdx = startIdx + perPage;
-      const pageResults = filteredResults.slice(startIdx, endIdx);
+      const pageResults = displayResults.slice(startIdx, endIdx);
 
       tableBody.innerHTML = pageResults.map((r, i) => {
-        const globalIdx = startIdx + i; // Use global index for edit/delete
+        const globalIdx = filteredResults.indexOf(r); // Map back to filteredResults index for edit/delete
         const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
         const tracker = mailedTracker[key];
         const mailCount = tracker ? tracker.count : 0;
         const mailColor = mailCount >= 7 ? '#f59e0b' : mailCount >= 3 ? '#22c55e' : mailCount > 0 ? '#60a5fa' : '#555';
+        // Check verifier status
+        const vKey = `${r.address}, ${r.city}, ${r.state || ''} ${r.zipcode}`.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const vStatus = verifierStatus[vKey];
+        const vBadge = vStatus ? (vStatus.status === VERIFY_STATUS.VERIFIED ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:#22c55e;color:#000;font-weight:600;margin-left:4px;">✓ Pool</span>' : vStatus.status === VERIFY_STATUS.NO_POOL ? '<span style="font-size:9px;padding:1px 4px;border-radius:3px;background:#ef4444;color:#fff;font-weight:600;margin-left:4px;">✗ No Pool</span>' : '') : '';
 
         return `<tr>
           <td><button class="row-btn" onclick="openEditModal(${globalIdx})">✏️</button> <button class="row-btn danger" onclick="removeRow(${globalIdx})">🗑️</button></td>
-          <td title="${escapeHtml(r.recipient || 'Current Resident')}">${escapeHtml(r.recipient || 'Current Resident')}</td>
-          <td title="${escapeHtml(r.address)}${r.validated !== undefined ? (r.validated ? ' ✓ Valid' : ' ✗ Invalid') : ''}">${r.validated !== undefined ? (r.validated ? '<span style="color:#22c55e">✓</span> ' : '<span style="color:#ef4444">✗</span> ') : ''}${escapeHtml(r.address)}</td>
+          <td title="${escapeHtml(r.recipient || 'Current Resident')}">${escapeHtml(r.recipient || 'Current Resident')}${vBadge}</td>
+          <td title="${escapeHtml(r.propertyAddress || '')}">${r.validated !== undefined ? (r.validated ? '<span style="color:#22c55e">✓</span> ' : '<span style="color:#ef4444">✗</span> ') : ''}${escapeHtml(r.propertyAddress || '')}</td>
+          <td title="${escapeHtml(r.mailingAddress || '')}">${escapeHtml(r.mailingAddress || '')}</td>
           <td>${escapeHtml(r.city)}</td>
           <td>${escapeHtml(r.state || '')}</td>
           <td>${escapeHtml(r.zipcode)}</td>
           <td>${escapeHtml(r.propertyValue || '')}</td>
           <td title="${escapeHtml(r.subdivision || '')}">${escapeHtml((r.subdivision || '').substring(0, 20))}</td>
+          <td title="${escapeHtml((r.triggers || []).join(', '))}">${(r.triggers || []).length > 0 ? '<span style="color:#f59e0b;">⚡</span> ' + escapeHtml((r.triggers || []).join(', ').substring(0, 30)) : ''}</td>
           <td>${r.poolAge ? r.poolAge + 'y' : ''}</td>
           <td title="${escapeHtml(r.saleDate || '')}">${r.daysSinceSale !== null ? (r.daysSinceSale < 365 ? r.daysSinceSale + 'd' : Math.floor(r.daysSinceSale/365) + 'y') : escapeHtml(r.saleDate || '')}</td>
-          <td><span class="badge ${r.isAbsentee ? 'badge-orange' : 'badge-green'}">${r.isAbsentee ? 'Absent' : 'Owner'}</span></td>
+          <td><span class="badge ${r.isAbsentee ? 'badge-orange' : 'badge-green'}" style="cursor:pointer;" onclick="toggleAbsentee(${globalIdx})" title="Click to toggle">${r.isAbsentee ? 'Absent' : 'Owner'}</span></td>
           <td style="text-align:center; color:${mailColor}; font-weight:${mailCount > 0 ? 'bold' : 'normal'};">${mailCount > 0 ? mailCount + 'x' : '-'}</td>
           <td><input type="text" class="note-input" value="${escapeHtml(r.notes || '')}" onchange="updateNote(${globalIdx}, this.value)" placeholder="..."></td>
         </tr>`;
@@ -4401,9 +4638,9 @@
       else { sortColumn = column; sortDir = 1; }
 
       // Define column types for proper sorting
-      const numericColumns = ['poolAge', 'yearBuilt', 'propertyValue', 'assessedValue', 'mailCount', 'daysSinceSale'];
+      const numericColumns = ['poolAge', 'yearBuilt', 'propertyValue', 'assessedValue', 'mailCount', 'daysSinceSale', 'lotSize', 'livingArea'];
       const dateColumns = ['saleDate'];
-      const alphaColumns = ['recipient', 'company', 'address', 'city', 'state', 'subdivision', 'propertyType', 'notes'];
+      const alphaColumns = ['recipient', 'company', 'propertyAddress', 'mailingAddress', 'city', 'state', 'subdivision', 'propertyType', 'notes'];
 
       filteredResults.sort((a, b) => {
         // Special handling for mail count (computed field)
@@ -4525,9 +4762,26 @@
       r.city = document.getElementById('editCity').value;
       r.state = document.getElementById('editState').value;
       r.zipcode = document.getElementById('editZipcode').value;
+      // Sync edit back to main results array
+      const orig = results.find(o => o === r) || results.find(o => o.address === r.address && o.zipcode === r.zipcode);
+      if (orig && orig !== r) {
+        orig.recipient = r.recipient; orig.company = r.company;
+        orig.address = r.address; orig.city = r.city;
+        orig.state = r.state; orig.zipcode = r.zipcode;
+      }
       closeEditModal();
       renderTable();
       showToast('Record updated');
+    }
+
+    function toggleAbsentee(i) {
+      const r = filteredResults[i];
+      r.isAbsentee = !r.isAbsentee;
+      // Also update in main results array
+      const orig = results.find(o => o.address === r.address && o.zipcode === r.zipcode);
+      if (orig) orig.isAbsentee = r.isAbsentee;
+      renderTable();
+      showToast(`${r.recipient || 'Record'} → ${r.isAbsentee ? 'Absent' : 'Owner'}`);
     }
 
     function removeRow(i) {
@@ -4539,9 +4793,52 @@
       document.getElementById('statMatches').textContent = results.length.toLocaleString();
     }
 
+    // Quick VistaPrint export — one click, 6 columns, skip mailed
+    function quickVistaPrintExport() {
+      // Get records from selected subdivisions, skip already-mailed
+      const exportable = getSubdivFilteredResults().filter(r => {
+        const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+        return !mailedTracker[key];
+      });
+
+      if (exportable.length === 0) {
+        showToast('No unmailed addresses to export', 'error');
+        return;
+      }
+
+      const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode'];
+      const rows = exportable.map(r => [
+        `"${(r.recipient || 'Current Resident').replace(/"/g, '""')}"`,
+        `"${(r.company || '').replace(/"/g, '""')}"`,
+        `"${(r.address || '').replace(/"/g, '""')}"`,
+        `"${(r.city || '').replace(/"/g, '""')}"`,
+        `"${(r.state || '').replace(/"/g, '""')}"`,
+        `"${(r.zipcode || '').replace(/"/g, '""')}"`
+      ].join(','));
+      const csv = [headers.join(','), ...rows].join('\n');
+
+      // Auto-name with top subdivision
+      const subdivCounts = {};
+      exportable.forEach(r => {
+        const s = (r.subdivision || '').trim();
+        if (s) subdivCounts[s] = (subdivCounts[s] || 0) + 1;
+      });
+      const topSubdiv = Object.entries(subdivCounts).sort((a, b) => b[1] - a[1])[0];
+      const subdivName = topSubdiv ? topSubdiv[0].replace(/\s+/g, '_') : 'Mixed';
+      const date = new Date().toISOString().slice(0, 10);
+      const fileName = `VistaPrint_${subdivName}_${exportable.length}_${date}.csv`;
+
+      downloadFile(csv, fileName);
+
+      // Log to history with subdivision info
+      const subdivList = Object.entries(subdivCounts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, c]) => `${n} (${c})`);
+      addToHistory(exportable.length, 'VistaPrint', subdivList, fileName);
+      showToast(`Exported ${exportable.length} addresses for VistaPrint → ${fileName}`);
+    }
+
     // Export functions - VistaPrint format
     function generateCSV(data) {
-      const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode', 'Subdivision', 'Type', 'Value', 'Pool Age', 'Sale Date', 'Days Since Sale'];
+      const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode', 'Subdivision', 'Type', 'Value', 'Lot SqFt', 'Living SqFt', 'Pool Age', 'Sale Date', 'Days Since Sale', 'Triggers'];
       const rows = data.map(r => {
         return [
           `"${(r.recipient || 'Current Resident').replace(/"/g, '""')}"`,
@@ -4553,9 +4850,12 @@
           `"${(r.subdivision || '').replace(/"/g, '""')}"`,
           `"${r.isAbsentee ? 'Absentee' : 'Owner'}"`,
           `"${(r.propertyValue || '').replace(/"/g, '""')}"`,
+          `"${r.lotSize || ''}"`,
+          `"${r.livingArea || ''}"`,
           `"${r.poolAge || ''}"`,
           `"${r.saleDate || ''}"`,
-          `"${r.daysSinceSale !== null ? r.daysSinceSale : ''}"`
+          `"${r.daysSinceSale !== null ? r.daysSinceSale : ''}"`,
+          `"${(r.triggers || []).join('; ').replace(/"/g, '""')}"`
         ].join(',');
       });
       return [headers.join(','), ...rows].join('\n');
@@ -4568,14 +4868,58 @@
       return parseInt(select.value) || 0;
     }
 
+    function getSubdivFilteredResults() {
+      if (selectedSubdivisions.size === 0) return filteredResults;
+      return filteredResults.filter(r => {
+        const sub = (r.subdivision || '').trim();
+        return sub && selectedSubdivisions.has(sub);
+      });
+    }
+
     function getExportableRecords() {
       const skipMailed = document.getElementById('skipExported').checked;
       const includeRecycle = document.getElementById('includeRecycle').checked;
-      const recycleDays = parseInt(document.getElementById('recycleDays').value) || 30;
-      let exportable = filteredResults;
+      const recycleDays = parseInt(document.getElementById('recycleDays').value) || DEFAULT_RECYCLE_DAYS;
+      let exportable = getSubdivFilteredResults();
 
       if (skipMailed) {
-        exportable = filteredResults.filter(r => {
+        exportable = exportable.filter(r => {
+          const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
+          const tracker = mailedTracker[key];
+          if (!tracker) return true;
+          if (includeRecycle) {
+            const daysSince = Math.floor((new Date() - new Date(tracker.lastMailed)) / (1000 * 60 * 60 * 24));
+            return daysSince >= recycleDays;
+          }
+          return false;
+        });
+      }
+
+      // Prepend deferred records from last batch so they go out first
+      try {
+        const deferredData = JSON.parse(localStorage.getItem('poolscraper_deferred') || 'null');
+        if (deferredData && Array.isArray(deferredData.records) && deferredData.records.length > 0) {
+          const deferredKeys = new Set(deferredData.records.map(r => `${r.address}|${r.city}|${r.zipcode}`.toUpperCase()));
+          // Remove deferred from the main list to avoid duplicates, then prepend
+          const withoutDeferred = exportable.filter(r => !deferredKeys.has(`${r.address}|${r.city}|${r.zipcode}`.toUpperCase()));
+          exportable = [...deferredData.records, ...withoutDeferred];
+        }
+      } catch (e) { console.warn('[scraper] deferred load:', e.message); }
+
+      const count = getExportCount();
+      if (count > 0) exportable = exportable.slice(0, count);
+      return exportable;
+    }
+
+    // Returns records that didn't make the export count cut
+    function getDeferredRecords() {
+      const skipMailed = document.getElementById('skipExported').checked;
+      const includeRecycle = document.getElementById('includeRecycle').checked;
+      const recycleDays = parseInt(document.getElementById('recycleDays').value) || DEFAULT_RECYCLE_DAYS;
+      let exportable = getSubdivFilteredResults();
+
+      if (skipMailed) {
+        exportable = exportable.filter(r => {
           const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
           const tracker = mailedTracker[key];
           if (!tracker) return true;
@@ -4588,13 +4932,42 @@
       }
 
       const count = getExportCount();
-      if (count > 0) exportable = exportable.slice(0, count);
-      return exportable;
+      if (count > 0 && exportable.length > count) {
+        return exportable.slice(count);
+      }
+      return [];
+    }
+
+    // Save deferred records and show report after send/export
+    function trackDeferredAfterExport() {
+      const deferred = getDeferredRecords();
+      if (deferred.length === 0) {
+        localStorage.removeItem('poolscraper_deferred');
+        return;
+      }
+      try {
+        localStorage.setItem('poolscraper_deferred', JSON.stringify({
+          records: deferred,
+          timestamp: new Date().toISOString(),
+          count: deferred.length
+        }));
+      } catch (e) { console.warn('[scraper] deferred save:', e.message); }
+
+      const subdivCounts = {};
+      deferred.forEach(r => {
+        const sub = (r.subdivision || 'Unknown').trim();
+        subdivCounts[sub] = (subdivCounts[sub] || 0) + 1;
+      });
+      const breakdown = Object.entries(subdivCounts).map(([s, c]) => `${s}: ${c}`).join(', ');
+      showToast(`${deferred.length} addresses deferred to next batch (${breakdown})`, 0);
     }
 
     function updateExportPreview() {
       const exportable = getExportableRecords();
-      document.getElementById('exportPreviewCount').textContent = exportable.length.toLocaleString();
+      const deferred = getDeferredRecords();
+      let text = exportable.length.toLocaleString();
+      if (deferred.length > 0) text += ` (+${deferred.length} deferred)`;
+      document.getElementById('exportPreviewCount').textContent = text;
     }
 
     function downloadCSV() {
@@ -4611,6 +4984,7 @@
       addToHistory(exportable.length);
       const addedCount = addToMailedList(exportable);
       showToast(`Exported ${exportable.length} records`);
+      trackDeferredAfterExport();
       updateExportPreview();
     }
 
@@ -4721,34 +5095,167 @@
       updateExportPreview();
     }
 
-    function sortByRoute() {
-      if (filteredResults.length === 0) { showToast('No data'); return; }
+    // ── Geo-sorted walking route ──────────────────────────────────────
+    function loadGeoCache() {
+      try { return JSON.parse(localStorage.getItem('poolscraper_geoCache') || '{}'); }
+      catch { return {}; }
+    }
+    function saveGeoCache(cache) {
+      try { localStorage.setItem('poolscraper_geoCache', JSON.stringify(cache)); }
+      catch (e) { console.warn('Geo cache save failed:', e); }
+    }
+    function clearGeoCache() {
+      localStorage.removeItem('poolscraper_geoCache');
+      showToast('Geo cache cleared — next sort will re-geocode');
+    }
+    function geoCacheKey(subdiv, city) {
+      return `${(subdiv || '').toUpperCase().trim()}|${(city || '').toUpperCase().trim()}`;
+    }
 
-      // Sort by subdivision (walking clusters), then street, then house number
-      filteredResults.sort((a, b) => {
-        // 1. Group by subdivision first (walking distance clusters)
-        const subdivA = (a.subdivision || '').toLowerCase();
-        const subdivB = (b.subdivision || '').toLowerCase();
-        if (subdivA !== subdivB) return subdivA.localeCompare(subdivB);
-
-        // 2. Within subdivision, group by zip code
-        const zipA = (a.zipcode || '').substring(0, 5);
-        const zipB = (b.zipcode || '').substring(0, 5);
-        if (zipA !== zipB) return zipA.localeCompare(zipB);
-
-        // 3. Then by street name (neighbors on same street)
-        const streetA = (a.address || '').replace(/^\d+\s*/, '').toLowerCase();
-        const streetB = (b.address || '').replace(/^\d+\s*/, '').toLowerCase();
-        if (streetA !== streetB) return streetA.localeCompare(streetB);
-
-        // 4. Then by house number (sequential for walking)
-        const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0');
-        const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
-        return numA - numB;
+    async function geocodeSingleAddress(record) {
+      const street = (record.propertyAddress || record.address || '').replace(/[#,]/g, '').trim();
+      const city = (record.city || '').trim();
+      const state = (record.state || 'FL').trim();
+      if (!street || !city) return null;
+      const params = new URLSearchParams({
+        street, city, state, benchmark: 'Public_AR_Current', format: 'json'
       });
+      const resp = await fetch(`https://geocoding.geo.census.gov/geocoder/locations/address?${params}`);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      const match = data.result?.addressMatches?.[0];
+      if (!match?.coordinates?.x || !match?.coordinates?.y) return null;
+      return { lat: match.coordinates.y, lng: match.coordinates.x };
+    }
 
-      renderTable();
-      showToast(`Sorted by subdivision walking route (${[...new Set(filteredResults.map(r => r.subdivision).filter(s => s))].length} subdivisions)`);
+    function haversineDistance(lat1, lng1, lat2, lng2) {
+      const R = EARTH_RADIUS_KM;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function buildNearestNeighborChain(geoItems) {
+      if (geoItems.length <= 1) return geoItems.map(g => g.name);
+      const valid = geoItems.filter(g => g.lat != null && g.lng != null);
+      const noGeo = geoItems.filter(g => g.lat == null || g.lng == null).map(g => g.name);
+      if (valid.length === 0) return geoItems.map(g => g.name);
+
+      const visited = new Set();
+      const chain = [];
+      let cur = valid[0];
+      chain.push(cur.name);
+      visited.add(cur.name);
+
+      while (chain.length < valid.length) {
+        let best = null, bestDist = Infinity;
+        for (const c of valid) {
+          if (visited.has(c.name)) continue;
+          const d = haversineDistance(cur.lat, cur.lng, c.lat, c.lng);
+          if (d < bestDist) { bestDist = d; best = c; }
+        }
+        if (!best) break;
+        chain.push(best.name);
+        visited.add(best.name);
+        cur = best;
+      }
+      return chain.concat(noGeo);
+    }
+
+    function sortByRouteAlphabetical() {
+      filteredResults.sort((a, b) => {
+        const sa = (a.subdivision || '').toLowerCase(), sb = (b.subdivision || '').toLowerCase();
+        if (sa !== sb) return sa.localeCompare(sb);
+        const za = (a.zipcode || '').substring(0, 5), zb = (b.zipcode || '').substring(0, 5);
+        if (za !== zb) return za.localeCompare(zb);
+        const stA = (a.address || '').replace(/^\d+\s*/, '').toLowerCase();
+        const stB = (b.address || '').replace(/^\d+\s*/, '').toLowerCase();
+        if (stA !== stB) return stA.localeCompare(stB);
+        return parseInt((a.address || '').match(/^\d+/)?.[0] || '0') -
+               parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
+      });
+    }
+
+    async function sortByRoute() {
+      const routeSource = getSubdivFilteredResults();
+      if (routeSource.length === 0) { showToast('No data'); return; }
+
+      // Extract unique subdivisions with a representative record
+      const subdivMap = new Map();
+      for (const r of routeSource) {
+        const name = (r.subdivision || 'UNKNOWN').trim();
+        if (!subdivMap.has(name)) subdivMap.set(name, r);
+      }
+      const subdivs = Array.from(subdivMap.entries()).map(([name, rec]) => ({ name, rec }));
+      const total = subdivs.length;
+
+      if (total <= 1) {
+        sortByRouteAlphabetical();
+        renderTable();
+        showToast('Sorted (single subdivision)');
+        return;
+      }
+
+      showToast(`Geocoding ${total} subdivisions...`, 0);
+
+      try {
+        const cache = loadGeoCache();
+        let geocoded = 0;
+
+        for (let i = 0; i < subdivs.length; i++) {
+          const { name, rec } = subdivs[i];
+          const key = geoCacheKey(name, rec.city);
+          if (cache[key]) { geocoded++; continue; }
+
+          showToast(`Geocoding (${i + 1}/${total}): ${name.substring(0, 30)}`, 0);
+          try {
+            const geo = await geocodeSingleAddress(rec);
+            if (geo) {
+              cache[key] = { lat: geo.lat, lng: geo.lng, ts: Date.now() };
+              geocoded++;
+            }
+          } catch { /* skip */ }
+          if (i < subdivs.length - 1) await new Promise(r => setTimeout(r, 50));
+        }
+        saveGeoCache(cache);
+
+        // Build geo items for chaining
+        const geoItems = subdivs.map(({ name, rec }) => {
+          const c = cache[geoCacheKey(name, rec.city)];
+          return { name, lat: c?.lat ?? null, lng: c?.lng ?? null };
+        });
+
+        const ordered = buildNearestNeighborChain(geoItems);
+
+        // Build priority map and sort
+        const priority = new Map();
+        ordered.forEach((n, i) => priority.set(n, i));
+
+        routeSource.sort((a, b) => {
+          const pa = priority.get((a.subdivision || 'UNKNOWN').trim()) ?? priority.size;
+          const pb = priority.get((b.subdivision || 'UNKNOWN').trim()) ?? priority.size;
+          if (pa !== pb) return pa - pb;
+          const za = (a.zipcode || '').substring(0, 5), zb = (b.zipcode || '').substring(0, 5);
+          if (za !== zb) return za.localeCompare(zb);
+          const stA = (a.address || '').replace(/^\d+\s*/, '').toLowerCase();
+          const stB = (b.address || '').replace(/^\d+\s*/, '').toLowerCase();
+          if (stA !== stB) return stA.localeCompare(stB);
+          return parseInt((a.address || '').match(/^\d+/)?.[0] || '0') -
+                 parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
+        });
+
+        filteredResults = routeSource;
+        renderTable();
+        showToast(`Sorted ${total} subdivisions by walking route (${geocoded} geocoded)`);
+      } catch (err) {
+        console.error('Geo sort failed:', err);
+        showToast('Geocoding failed — falling back to alphabetical');
+        sortByRouteAlphabetical();
+        renderTable();
+      }
     }
 
     // Open current page addresses in Google Maps for driving route
@@ -4821,7 +5328,7 @@
     }
 
     // Mailed List Functions
-    function addToMailedList(records) {
+    function addToMailedList(records, campaignId) {
       const today = new Date().toISOString().slice(0, 10);
       let addedCount = 0;
 
@@ -4834,6 +5341,7 @@
           mailedTracker[key] = { count: 1, firstMailed: today, lastMailed: today };
           addedCount++;
         }
+        if (campaignId) mailedTracker[key].lastCampaign = campaignId;
       });
 
       mailedAddresses = Object.keys(mailedTracker);
@@ -4842,7 +5350,7 @@
       return addedCount;
     }
 
-    function getRecyclableCount(recycleDays = 30) {
+    function getRecyclableCount(recycleDays = DEFAULT_RECYCLE_DAYS) {
       let count = 0;
       const today = new Date();
       Object.values(mailedTracker).forEach(data => {
@@ -4955,8 +5463,8 @@
     }
 
     // History functions
-    function addToHistory(count, type = 'Export') {
-      exportHistory.unshift({ date: new Date().toISOString(), count, type });
+    function addToHistory(count, type = 'Export', subdivisions = [], fileName = '') {
+      exportHistory.unshift({ date: new Date().toISOString(), count, type, subdivisions, fileName });
       if (exportHistory.length > 50) exportHistory.pop();
       localStorage.setItem('poolscraper_history', JSON.stringify(exportHistory));
       renderHistory();
@@ -4968,12 +5476,18 @@
         container.innerHTML = '<p style="color:var(--text-dim); text-align:center; padding:20px;">No exports yet</p>';
         return;
       }
-      container.innerHTML = exportHistory.slice(0, 20).map(h => `
-        <div style="display:flex; justify-content:space-between; padding:8px; background:var(--bg); border-radius:4px; margin-bottom:6px; font-size:12px;">
-          <span>${h.type}: ${h.count.toLocaleString()} records</span>
-          <span style="color:var(--text-dim);">${new Date(h.date).toLocaleDateString()}</span>
-        </div>
-      `).join('');
+      container.innerHTML = exportHistory.slice(0, 20).map(h => {
+        const subdivText = h.subdivisions && h.subdivisions.length > 0
+          ? `<div style="font-size:10px; color:var(--text-dim); margin-top:2px;">${escapeHtml(h.subdivisions.join(' · '))}</div>` : '';
+        const fileText = h.fileName ? `<div style="font-size:10px; color:var(--accent); margin-top:1px;">${escapeHtml(h.fileName)}</div>` : '';
+        return `<div style="padding:8px; background:var(--bg); border-radius:4px; margin-bottom:6px; font-size:12px;">
+          <div style="display:flex; justify-content:space-between;">
+            <span><strong>${escapeHtml(h.type)}</strong>: ${h.count.toLocaleString()} records</span>
+            <span style="color:var(--text-dim);">${new Date(h.date).toLocaleDateString()}</span>
+          </div>
+          ${subdivText}${fileText}
+        </div>`;
+      }).join('');
     }
 
     function clearHistory() {
@@ -5008,11 +5522,17 @@
       resultsSection.style.display = 'none';
       emptyState.style.display = 'block';
       clearSession();
+      localStorage.removeItem('poolscraper_batches');
+      localStorage.removeItem('poolscraper_filtered');
       showToast('Cleared');
     }
 
     // ==================== SUBDIVISION PICKER ====================
     let selectedSubdivisions = new Set();
+    try {
+      const _saved = JSON.parse(localStorage.getItem('poolscraper_subdivSelections') || '[]');
+      if (Array.isArray(_saved) && _saved.length > 0) selectedSubdivisions = new Set(_saved);
+    } catch (e) { console.warn('[scraper] subdiv restore:', e.message); }
 
     let subdivPickerInitialized = false;
 
@@ -5031,16 +5551,19 @@
         return;
       }
 
-      // On first run, select all. On subsequent runs, preserve existing selections.
-      if (!subdivPickerInitialized) {
+      // On first run, select all only if nothing was restored from localStorage.
+      if (!subdivPickerInitialized && selectedSubdivisions.size === 0) {
         selectedSubdivisions = new Set(sorted.map(([name]) => name));
-        subdivPickerInitialized = true;
       }
-      // Remove stale selections that no longer appear in filtered data
-      const visibleNames = new Set(sorted.map(([name]) => name));
+      subdivPickerInitialized = true;
+      // Remove stale selections that no longer exist in the FULL dataset
+      // (not filteredResults — city/zip filters should not permanently erase selections)
+      const allSubdivNames = new Set(results.map(r => (r.subdivision || '').trim()).filter(Boolean));
+      let _staleRemoved = false;
       for (const s of selectedSubdivisions) {
-        if (!visibleNames.has(s)) selectedSubdivisions.delete(s);
+        if (!allSubdivNames.has(s)) { selectedSubdivisions.delete(s); _staleRemoved = true; }
       }
+      if (_staleRemoved) persistSubdivSelections();
 
       const container = document.getElementById('subdivChecklist');
       container.innerHTML = sorted.map(([name, count]) => {
@@ -5056,11 +5579,19 @@
       updateSubdivCount();
     }
 
+    function persistSubdivSelections() {
+      try { localStorage.setItem('poolscraper_subdivSelections', JSON.stringify([...selectedSubdivisions])); } catch (e) { console.warn('[scraper] subdiv persist:', e.message); }
+    }
+
     function onSubdivToggle(cb) {
       const name = cb.dataset.subdiv;
       if (cb.checked) selectedSubdivisions.add(name);
       else selectedSubdivisions.delete(name);
       updateSubdivCount();
+      updateSelectedStats();
+      currentPage = 1;
+      renderTable();
+      persistSubdivSelections();
     }
 
     function toggleAllSubdivs(selectAll) {
@@ -5070,6 +5601,10 @@
         else selectedSubdivisions.delete(cb.dataset.subdiv);
       });
       updateSubdivCount();
+      updateSelectedStats();
+      currentPage = 1;
+      renderTable();
+      persistSubdivSelections();
     }
 
     function updateSubdivCount() {
@@ -5078,7 +5613,26 @@
       if (el) el.textContent = `${selectedSubdivisions.size} of ${visible} selected`;
     }
 
-    // Sync to Pool Verifier
+    function updateSelectedStats() {
+      const selected = getSubdivFilteredResults();
+
+      const subdivCounts = {};
+      selected.forEach(r => {
+        const s = (r.subdivision || '').trim();
+        if (s) subdivCounts[s] = (subdivCounts[s] || 0) + 1;
+      });
+      const sorted = Object.entries(subdivCounts).sort((a, b) => b[1] - a[1]);
+
+      document.getElementById('quickStatsText').textContent = `${selected.length} leads across ${sorted.length} subdivision${sorted.length !== 1 ? 's' : ''}`;
+      document.getElementById('quickStatsSubdivs').innerHTML = sorted.slice(0, 8).map(([name, count]) =>
+        `<span style="display:inline-block; padding:2px 8px; margin:2px 4px 2px 0; background:var(--bg); border:1px solid var(--border); border-radius:12px;">${escapeHtml(name)} <strong style="color:var(--accent);">${count}</strong></span>`
+      ).join('') + (sorted.length > 8 ? `<span style="color:var(--text-dim);"> +${sorted.length - 8} more</span>` : '');
+
+      // Keep export preview in sync with subdivision selection
+      if (typeof updateExportPreview === 'function') updateExportPreview();
+    }
+
+    // Sync to Pool Identifier
     // Send filtered results to Verifier — only sends checked subdivisions
     function sendFilteredToVerifier() {
       if (filteredResults.length === 0) {
@@ -5086,14 +5640,7 @@
         return;
       }
 
-      // Filter by checked subdivisions
-      const hasSubdivPicker = selectedSubdivisions.size > 0;
-      const toSend = hasSubdivPicker
-        ? filteredResults.filter(r => {
-            const sub = (r.subdivision || '').trim();
-            return sub && selectedSubdivisions.has(sub);
-          })
-        : filteredResults;
+      let toSend = getExportableRecords();
 
       if (toSend.length === 0) {
         showToast('No addresses match selected subdivisions. Check at least one.', 'error');
@@ -5102,6 +5649,7 @@
 
       const verifierData = toSend.map(r => ({
         recipient: r.recipient || 'Current Resident',
+        company: r.company || '',
         address: r.address,
         city: r.city,
         state: r.state || 'FL',
@@ -5110,18 +5658,62 @@
         propertyValue: r.propertyValue || '',
         yearBuilt: r.yearBuilt || '',
         poolAge: r.poolAge || '',
-        saleDate: r.saleDate || ''
+        saleDate: r.saleDate || '',
+        propertyAddress: r.propertyAddress || '',
+        mailingAddress: r.mailingAddress || '',
+        lotSize: r.lotSize || 0,
+        livingArea: r.livingArea || 0,
+        triggers: r.triggers || []
       }));
 
       try {
-        localStorage.setItem('poolscraper_filtered', JSON.stringify({
-          results: verifierData,
-          timestamp: new Date().toISOString(),
-          count: verifierData.length
-        }));
+        // Group by subdivision — each gets its own batch
+        const bySubdiv = {};
+        for (const r of verifierData) {
+          const sub = (r.subdivision || '').trim() || 'Uncategorized';
+          if (!bySubdiv[sub]) bySubdiv[sub] = [];
+          bySubdiv[sub].push(r);
+        }
 
-        const subdivs = [...new Set(verifierData.map(r => r.subdivision).filter(s => s))];
-        showToast(`Sent ${verifierData.length} addresses (${subdivs.length} subdivisions) to Verifier`);
+        // Fresh batches — always overwrite to prevent stale accumulation
+        const batches = {};
+        let totalSent = 0;
+        const summary = [];
+
+        for (const [subdiv, records] of Object.entries(bySubdiv)) {
+          const batchKey = subdiv.replace(/\s+/g, '_');
+
+          // Dedup within this send only
+          const seenKeys = new Set();
+          const unique = [];
+          for (const r of records) {
+            const key = `${(r.address || '').toUpperCase()}|${r.zipcode}`;
+            if (!seenKeys.has(key)) {
+              unique.push(r);
+              seenKeys.add(key);
+            }
+          }
+
+          batches[batchKey] = { name: subdiv, results: unique, timestamp: new Date().toISOString(), count: unique.length };
+          totalSent += unique.length;
+          summary.push(`${subdiv} (${unique.length})`);
+        }
+
+        const allResults = Object.values(batches).flatMap(b => b.results);
+        localStorage.setItem('poolscraper_transfer', JSON.stringify({
+          version: 2,
+          results: allResults,
+          timestamp: new Date().toISOString(),
+          count: allResults.length
+        }));
+        // Remove legacy keys to prevent stale fallback reads
+        localStorage.removeItem('poolscraper_filtered');
+        localStorage.removeItem('poolscraper_batches');
+
+        let msg = `Sent ${totalSent} addresses across ${Object.keys(bySubdiv).length} subdivisions`;
+        msg += `\n${summary.join(' · ')}`;
+        showToast(msg);
+        trackDeferredAfterExport();
       } catch (e) {
         if (e.name === 'QuotaExceededError') {
           showToast('Too much data. Filter to fewer addresses.', 'error');
@@ -5134,7 +5726,7 @@
     // ============== CAMPAIGN MANAGEMENT ==============
 
     function saveCampaigns() {
-      localStorage.setItem('postcard_campaigns', JSON.stringify(campaigns));
+      localStorage.setItem('poolscraper_campaigns', JSON.stringify(campaigns));
       updateCampaignBadge();
       renderCampaignList();
       updateCampaignStats();
@@ -5273,7 +5865,7 @@
                 <tr style="border-bottom:1px solid var(--border);">
                   <td style="padding:8px;">
                     <div style="font-weight:600;">${escapeHtml(c.name)}</div>
-                    <div style="font-size:10px; color:var(--text-dim);">${escapeHtml(c.targetArea || '')}</div>
+                    <div style="font-size:10px; color:var(--text-dim);">${escapeHtml(c.targetArea || '')}${c.designId ? ' <span style="color:var(--accent);font-size:9px;">🎨 Linked</span>' : ''}</div>
                   </td>
                   <td style="padding:8px;"><code style="background:var(--bg); padding:2px 6px; border-radius:3px;">${escapeHtml(c.promoCode || '-')}</code></td>
                   <td style="text-align:center; padding:8px; color:var(--cyan);">${c.addresses?.length || 0}</td>
@@ -5293,8 +5885,9 @@
         </table>
       `;
 
-      // Update resend list
+      // Update resend list and quick-log dropdown
       renderResendList();
+      populateQuickLogDropdown();
     }
 
     function renderResendList() {
@@ -5425,6 +6018,40 @@
 
     function closeCampaignDetail() {
       document.getElementById('campaignDetailModal').classList.remove('show');
+    }
+
+    function populateQuickLogDropdown() {
+      const sel = document.getElementById('quickLogCampaign');
+      if (!sel) return;
+      const current = sel.value;
+      sel.innerHTML = '<option value="">Select campaign...</option>' +
+        campaigns.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      if (current) sel.value = current;
+    }
+
+    function submitQuickLog() {
+      const campaignId = document.getElementById('quickLogCampaign').value;
+      if (!campaignId) { showToast('Select a campaign', 'error'); return; }
+      const campaign = campaigns.find(c => c.id === campaignId);
+      if (!campaign) return;
+
+      const calls = parseInt(document.getElementById('quickLogCalls').value) || 0;
+      const revenue = parseFloat(document.getElementById('quickLogRevenue').value) || 0;
+
+      if (calls <= 0 && revenue <= 0) { showToast('Enter calls or revenue', 'error'); return; }
+
+      if (calls > 0) campaign.calls = (campaign.calls || 0) + calls;
+      if (revenue > 0) campaign.revenue = (campaign.revenue || 0) + revenue;
+
+      saveCampaigns();
+
+      const parts = [];
+      if (calls > 0) parts.push(`${calls} call${calls > 1 ? 's' : ''}`);
+      if (revenue > 0) parts.push(`$${revenue.toLocaleString()}`);
+      showToast(`Logged ${parts.join(' + ')} for "${campaign.name}"`);
+
+      document.getElementById('quickLogCalls').value = '1';
+      document.getElementById('quickLogRevenue').value = '';
     }
 
     function logCampaignCall(campaignId) {
@@ -5716,12 +6343,12 @@
         case 'v':
           // Sync to verifier
           if (results.length > 0) {
-            syncToVerifier();
+            sendFilteredToVerifier();
           }
           break;
         case '?':
           // Show shortcuts help
-          showToast('Shortcuts: P=Process, E=Export, A/D=Prev/Next, /=Search, Esc=Clear, R=Recyclable, V=Verifier');
+          showToast('Shortcuts: P=Process, E=Export, A/D=Prev/Next, /=Search, Esc=Clear, R=Recyclable, V=Identifier');
           break;
       }
     });
@@ -5730,8 +6357,7 @@
     function saveSessionBoth(reason) {
       if (results.length === 0) return false;
 
-      try {
-        const slimResults = results.map(r => ({
+      const slimResults = results.map(r => ({
           recipient: r.recipient,
           company: r.company,
           address: r.address,
@@ -5745,23 +6371,34 @@
           saleDate: r.saleDate,
           daysSinceSale: r.daysSinceSale,
           isAbsentee: r.isAbsentee,
+          propertyAddress: r.propertyAddress || '',
+          mailingAddress: r.mailingAddress || '',
           subdivision: r.subdivision,
+          lotSize: r.lotSize || 0,
+          livingArea: r.livingArea || 0,
+          triggers: r.triggers || [],
           flags: r.flags || [],
           notes: r.notes
         }));
-        const session = {
-          results: slimResults,
-          stats: { total: results.length, matches: results.length, dupes: 0, biz: 0, excluded: 0 },
-          timestamp: new Date().toISOString()
-        };
-        const json = JSON.stringify(session);
+      const session = {
+        results: slimResults,
+        stats: { total: results.length, matches: results.length, dupes: 0, biz: 0, excluded: 0 },
+        timestamp: new Date().toISOString(),
+        cityFilter: currentCityFilter || null,
+        zipFilter: currentZipFilter || null,
+        activeFilter: currentFilter || 'all'
+      };
 
-        // Save to BOTH storage types for redundancy
+      // Always save to IndexedDB (no size limit)
+      saveToIDB(session);
+
+      try {
+        const json = JSON.stringify(session);
         localStorage.setItem('poolscraper_session', json);
         sessionStorage.setItem('poolscraper_session', json);
-
         return true;
       } catch (e) {
+        console.warn('[scraper] saveSessionBoth localStorage:', e.message);
         return false;
       }
     }
@@ -5821,7 +6458,7 @@
     });
 
     // Auto-save every 30 seconds if there's data
-    setInterval(() => {
+    let _autoSaveInterval = setInterval(() => {
       if (results.length > 0) {
         saveSessionBoth('auto');
       }
@@ -5841,14 +6478,20 @@
     }
 
     // Initialize on page load
-    setTimeout(() => {
+    setTimeout(async () => {
       if (!testLocalStorage()) {
         showToast('Warning: Browser storage disabled - data will not persist');
       }
-      const restored = restoreSession();
+      const statusEl = document.getElementById('sessionStatus');
+      statusEl.textContent = '⏳ Restoring...';
+      statusEl.style.color = 'var(--orange)';
+      const restored = await restoreSession();
       if (restored) {
-        document.getElementById('sessionStatus').textContent = '✓ Restored';
-        document.getElementById('sessionStatus').style.color = 'var(--green)';
+        statusEl.textContent = `✓ Restored ${results.length} records`;
+        statusEl.style.color = 'var(--green)';
+      } else {
+        statusEl.textContent = 'No saved session — upload CSV';
+        statusEl.style.color = 'var(--text-muted)';
       }
       initCampaigns();
     }, 100);

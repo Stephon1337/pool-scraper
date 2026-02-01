@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AquaDesk</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a; --text: #e4e6ed; --accent: #00B4D8; --accent2: #0077B6; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+
+    /* Header */
+    .dash-header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    /* Brand Logo */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      user-select: none;
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 12px rgba(0,180,216,0.3);
+    }
+    .brand-icon svg {
+      width: 20px;
+      height: 20px;
+      color: #fff;
+    }
+    .brand-name {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), #48CAE4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .dash-nav { display: flex; gap: 4px; margin-left: 32px; }
+    .dash-tab { padding: 8px 20px; border-radius: 8px; border: 1px solid transparent; background: none; color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
+    .dash-tab:hover { background: var(--border); }
+    .dash-tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+    /* Landing */
+    .landing { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 32px 24px; overflow-y: auto; }
+    .landing h2 { font-size: 28px; font-weight: 700; }
+    .landing p { color: #8a8d9a; font-size: 14px; max-width: 500px; text-align: center; }
+
+    /* Stats Dashboard */
+    .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; max-width: 960px; width: 100%; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 14px; text-align: center; }
+    .stat-card .stat-value { font-size: 26px; font-weight: 800; color: var(--accent); margin-bottom: 4px; }
+    .stat-card .stat-label { font-size: 11px; color: #8a8d9a; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .stat-card.positive .stat-value { color: #22c55e; }
+    .stat-card.negative .stat-value { color: #ef4444; }
+
+    /* Recent Campaigns Table */
+    .recent-campaigns { max-width: 960px; width: 100%; }
+    .recent-campaigns h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .rc-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .rc-table th { text-align: left; padding: 8px 12px; color: #8a8d9a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; font-size: 10px; border-bottom: 1px solid var(--border); }
+    .rc-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .rc-table tr:hover { background: rgba(0,180,216,0.04); }
+    .rc-empty { text-align: center; color: #555; padding: 20px; font-size: 12px; }
+
+    /* Tool Cards */
+    .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 960px; width: 100%; }
+    .tool-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; text-align: center; cursor: pointer; transition: all .25s; }
+    .tool-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,180,216,.15); }
+    .tool-card .icon { font-size: 36px; margin-bottom: 12px; }
+    .tool-card h3 { font-size: 16px; margin-bottom: 6px; }
+    .tool-card p { color: #8a8d9a; font-size: 12px; }
+
+    /* Iframe container */
+    .iframe-wrap { flex: 1; display: none; }
+    .iframe-wrap.active { display: block; }
+    .iframe-wrap iframe { width: 100%; height: 100%; border: none; }
+
+    @media (max-width: 900px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 700px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .tool-grid { grid-template-columns: 1fr; }
+      .dash-nav { margin-left: 0; }
+      .dash-header { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="dash-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2C6.5 8 3 12.5 3 16a9 9 0 0 0 18 0c0-3.5-3.5-8-9-14z"/>
+        </svg>
+      </div>
+      <div class="brand-name">AquaDesk</div>
+    </div>
+    <nav class="dash-nav">
+      <button class="dash-tab active" onclick="showLanding()">Home</button>
+      <button class="dash-tab" id="tab-scraper" onclick="loadTool('scraper')">Pool Scraper</button>
+      <button class="dash-tab" id="tab-verifier" onclick="loadTool('verifier')">Pool Identifier</button>
+      <button class="dash-tab" id="tab-postcard" onclick="loadTool('postcard')">Postcard Designer</button>
+    </nav>
+  </header>
+
+  <!-- Landing page -->
+  <div class="landing" id="landingPage">
+    <div style="text-align:center;">
+      <div style="display:inline-flex;align-items:center;gap:14px;margin-bottom:12px;">
+        <div class="brand-icon" style="width:48px;height:48px;border-radius:14px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px;">
+            <path d="M12 2C6.5 8 3 12.5 3 16a9 9 0 0 0 18 0c0-3.5-3.5-8-9-14z"/>
+          </svg>
+        </div>
+        <h2 style="font-size:32px;font-weight:800;letter-spacing:-0.5px;background:linear-gradient(135deg,var(--accent),#48CAE4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">AquaDesk</h2>
+      </div>
+      <p style="color:#8a8d9a;font-size:14px;max-width:500px;margin:0 auto;">Your all-in-one pool service command center. Scrape, identify, and mail — all from one desk.</p>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-value" id="stat-leads">0</div><div class="stat-label">Leads</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-verified">0</div><div class="stat-label">Verified</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-mailed">0</div><div class="stat-label">Mailed</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-campaigns">0</div><div class="stat-label">Campaigns</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-revenue">$0</div><div class="stat-label">Revenue</div></div>
+      <div class="stat-card" id="stat-roi-card"><div class="stat-value" id="stat-roi">0%</div><div class="stat-label">ROI</div></div>
+    </div>
+
+    <!-- Recent Campaigns -->
+    <div class="recent-campaigns" id="recentCampaigns">
+      <h3>Recent Campaigns</h3>
+      <table class="rc-table">
+        <thead><tr><th>Name</th><th>Sent</th><th>Calls</th><th>Revenue</th><th>Date</th></tr></thead>
+        <tbody id="rcBody"><tr><td colspan="5" class="rc-empty">No campaigns yet</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Tool Cards -->
+    <div class="tool-grid">
+      <div class="tool-card" onclick="loadTool('scraper')">
+        <div class="icon">&#128269;</div>
+        <h3>Pool Scraper</h3>
+        <p>Find pool owners by area. Export leads for targeted marketing.</p>
+      </div>
+      <div class="tool-card" onclick="loadTool('verifier')">
+        <div class="icon">&#9989;</div>
+        <h3>Pool Identifier</h3>
+        <p>Identify pools via satellite and validate addresses before mailing.</p>
+      </div>
+      <div class="tool-card" onclick="loadTool('postcard')">
+        <div class="icon">&#9993;</div>
+        <h3>Postcard Designer</h3>
+        <p>268 layouts, Quick Mode, full customization, print-ready export.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool iframes (lazy loaded) -->
+  <div class="iframe-wrap" id="frame-postcard"></div>
+  <div class="iframe-wrap" id="frame-scraper"></div>
+  <div class="iframe-wrap" id="frame-verifier"></div>
+
+  <script>
+    const toolFiles = {
+      postcard: 'postcard.html',
+      scraper: 'pool-scraper.html',
+      verifier: 'PoolVerifier.html'
+    };
+    const loaded = {};
+
+    function setActiveTab(id) {
+      document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+      if (id) {
+        const tab = document.getElementById('tab-' + id);
+        if (tab) tab.classList.add('active');
+      } else {
+        document.querySelector('.dash-tab').classList.add('active');
+      }
+    }
+
+    function showLanding() {
+      document.getElementById('landingPage').style.display = 'flex';
+      document.querySelectorAll('.iframe-wrap').forEach(f => f.classList.remove('active'));
+      setActiveTab(null);
+      refreshDashboard();
+    }
+
+    /* ── Dashboard Stats ── */
+    const COST_PER_CARD = 0.75;
+
+    function safeJSON(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key)) || fallback; }
+      catch { return fallback; }
+    }
+
+    function refreshDashboard() {
+      // Leads
+      const session = safeJSON('poolscraper_session', {});
+      const leads = Array.isArray(session.results) ? session.results.length : 0;
+      document.getElementById('stat-leads').textContent = leads.toLocaleString();
+
+      // Verified
+      const vData = safeJSON('poolVerifierData', {});
+      const verified = Object.values(vData).filter(v => v && v.status === 'has_pool').length;
+      document.getElementById('stat-verified').textContent = verified.toLocaleString();
+
+      // Mailed
+      const mailed = safeJSON('poolscraper_mailed_v2', {});
+      const mailedCount = Object.keys(mailed).length;
+      document.getElementById('stat-mailed').textContent = mailedCount.toLocaleString();
+
+      // Campaigns
+      const campaigns = safeJSON('poolscraper_campaigns', []);
+      document.getElementById('stat-campaigns').textContent = campaigns.length;
+
+      // Revenue & ROI
+      let totalSent = 0, totalRevenue = 0, totalCalls = 0;
+      for (const c of campaigns) {
+        totalSent += Array.isArray(c.addresses) ? c.addresses.length : 0;
+        totalRevenue += (c.revenue || 0);
+        totalCalls += (c.calls || 0);
+      }
+      document.getElementById('stat-revenue').textContent = '$' + totalRevenue.toLocaleString();
+
+      const totalCost = totalSent * COST_PER_CARD;
+      const roiCard = document.getElementById('stat-roi-card');
+      roiCard.classList.remove('positive', 'negative');
+      if (totalCost > 0) {
+        const roi = ((totalRevenue - totalCost) / totalCost * 100).toFixed(0);
+        document.getElementById('stat-roi').textContent = roi + '%';
+        roiCard.classList.add(roi >= 0 ? 'positive' : 'negative');
+      } else {
+        document.getElementById('stat-roi').textContent = '--';
+      }
+
+      // Recent campaigns table (last 5)
+      const tbody = document.getElementById('rcBody');
+      if (campaigns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="rc-empty">No campaigns yet</td></tr>';
+        return;
+      }
+      const recent = campaigns.slice().sort((a, b) => (b.dateCreated || '').localeCompare(a.dateCreated || '')).slice(0, 5);
+      tbody.innerHTML = recent.map(c => {
+        const sent = Array.isArray(c.addresses) ? c.addresses.length : 0;
+        const date = c.dateCreated ? new Date(c.dateCreated).toLocaleDateString() : '--';
+        return `<tr>
+          <td style="font-weight:600;">${esc(c.name || 'Untitled')}</td>
+          <td>${sent}</td>
+          <td>${c.calls || 0}</td>
+          <td>$${(c.revenue || 0).toLocaleString()}</td>
+          <td style="color:#8a8d9a;">${date}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    refreshDashboard();
+    window.addEventListener('storage', refreshDashboard);
+
+    function loadTool(id) {
+      if (!toolFiles.hasOwnProperty(id)) return;
+      document.getElementById('landingPage').style.display = 'none';
+      document.querySelectorAll('.iframe-wrap').forEach(f => f.classList.remove('active'));
+
+      const wrap = document.getElementById('frame-' + id);
+      if (!loaded[id]) {
+        const iframe = document.createElement('iframe');
+        iframe.src = toolFiles[id];
+        iframe.title = id;
+        iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads');
+        wrap.appendChild(iframe);
+        loaded[id] = true;
+      }
+      wrap.classList.add('active');
+      setActiveTab(id);
+    }
+  </script>
+</body>
+</html>
