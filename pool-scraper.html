@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https:;">
   <title>AquaDesk - Scraper</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -924,9 +925,15 @@
     });
 
     // HTML escape for XSS prevention
+    function csvSafe(val) {
+      const s = String(val == null ? '' : val).replace(/"/g, '""');
+      if (/^[=+\-@\t\r]/.test(s)) return "'" + s;
+      return s;
+    }
+
     function escapeHtml(str) {
       if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     let excludeAddresses = []; try { excludeAddresses = JSON.parse(localStorage.getItem('poolscraper_exclude') || '[]'); } catch(e){ console.warn('[scraper] exclude parse:', e.message); }
@@ -946,12 +953,14 @@
 
     // Migrate old format
     const oldMailed = JSON.parse(localStorage.getItem('poolscraper_mailed') || '[]');
-    if (oldMailed.length > 0 && Object.keys(mailedTracker).length === 0) {
-      const today = new Date().toISOString().slice(0, 10);
-      oldMailed.forEach(addr => {
-        mailedTracker[addr.toUpperCase()] = { count: 1, firstMailed: today, lastMailed: today };
-      });
-      localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+    if (oldMailed.length > 0) {
+      if (Object.keys(mailedTracker).length === 0) {
+        const today = new Date().toISOString().slice(0, 10);
+        oldMailed.forEach(addr => {
+          mailedTracker[addr.toUpperCase()] = { count: 1, firstMailed: today, lastMailed: today };
+        });
+        localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+      }
       localStorage.removeItem('poolscraper_mailed');
     }
 
@@ -1704,8 +1713,6 @@
       'NORTHDALE': { state: 'FL', zip: '33624', normalize: 'Northdale' },
       'OAK HILL': { state: 'FL', zip: '32759', normalize: 'Oak Hill' },
       'OAK RIDGE': { state: 'FL', zip: '32809', normalize: 'Oak Ridge' },
-      'OAKLAND': { state: 'FL', zip: '34760', normalize: 'Oakland' },
-      'OAKLAND PARK': { state: 'FL', zip: '33334', normalize: 'Oakland Park' },
       'OCALA': { state: 'FL', zip: '34470', normalize: 'Ocala' },
       'OCEAN BREEZE PARK': { state: 'FL', zip: '34957', normalize: 'Ocean Breeze Park' },
       'OCEAN CITY': { state: 'FL', zip: '32903', normalize: 'Ocean City' },
@@ -2428,6 +2435,7 @@
       'WASHINGTON': { state: 'DC', zip: '20001', normalize: 'Washington' },
       'WASHINGTON DC': { state: 'DC', zip: '20001', normalize: 'Washington' }
     };
+    const MULTI_STATE_CITIES = new Set(['BOWLING GREEN', 'DOVER', 'OAKLAND', 'GULFPORT']);
     const knownCities = Object.keys(cityLookup).sort((a, b) => b.length - a.length);
     const knownCityPatterns = knownCities.map(c => ({
       name: c,
@@ -2474,10 +2482,19 @@
 
     // Toast
     let _toastTimer = null;
-    function showToast(msg, duration) {
+    function showToast(msg, durationOrType) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
       toast.style.display = 'block';
+      // Support both duration (number) and type string ('error', 'success')
+      let duration;
+      if (typeof durationOrType === 'string') {
+        toast.style.borderColor = durationOrType === 'error' ? 'var(--red)' : 'var(--green)';
+        duration = TOAST_DURATION_MS;
+      } else {
+        toast.style.borderColor = '';
+        duration = durationOrType;
+      }
       if (_toastTimer) clearTimeout(_toastTimer);
       if (duration !== 0) _toastTimer = setTimeout(() => toast.style.display = 'none', duration || TOAST_DURATION_MS);
     }
@@ -3270,6 +3287,7 @@
 
       const currentYear = new Date().getFullYear();
       const mailedSet = new Set(mailedAddresses.map(a => a.toUpperCase()));
+      const excludeSet = new Set(excludeAddresses.map(a => a.toUpperCase()));
 
       results = [];
       let dupeCount = 0, bizCount = 0, excludedCount = 0, mailedSkipped = 0;
@@ -3444,6 +3462,7 @@
 
         if (!city) {
           for (const { name: cityName, pattern: cityPattern } of knownCityPatterns) {
+            if (MULTI_STATE_CITIES.has(cityName)) continue;
             if (cityPattern.test(address1)) {
               const lookup = cityLookup[cityName];
               city = (lookup && lookup.normalize) ? lookup.normalize : cityName;
@@ -3536,7 +3555,7 @@
           if (noPoolSet.has(verifierKey)) { excludedCount++; continue; }
         }
 
-        if (excludeAddresses.some(ex => fullAddress.toUpperCase().includes(ex.toUpperCase()))) { excludedCount++; continue; }
+        if (excludeSet.has(fullAddress.toUpperCase())) { excludedCount++; continue; }
 
         const flags = [];
         if (isBusiness) flags.push('BIZ');
@@ -3766,7 +3785,7 @@
                     foundZip++;
                   }
                 }
-              } catch (e) { /* ignore */ }
+              } catch (e) { console.warn('[scraper] address lookup failed:', e.message); }
             }));
             progressText.textContent = `Lookup: ${i + batch.length}/${needsLookup.length}`;
             await new Promise(r => setTimeout(r, 50));
@@ -3822,6 +3841,7 @@
       // Try to find known cities at end
       let foundCity = false;
       for (const cityName of knownCities) {
+        if (MULTI_STATE_CITIES.has(cityName)) continue;
         const pattern = new RegExp('\\b' + cityName.replace(/\s+/g, '\\s+') + '\\s*$', 'i');
         if (pattern.test(addr)) {
           const lookup = cityLookup[cityName];
@@ -3897,58 +3917,59 @@
       return stateMap[state] || state;
     }
 
+    const FOREIGN_PATTERNS = [
+      // Country names
+      /\bCANADA\b/, /\bONTARIO\b/, /\bQUEBEC\b/, /\bALBERTA\b/, /\bBRITISH COLUMBIA\b/,
+      /\bUNITED KINGDOM\b/, /\bENGLAND\b/, /\bSCOTLAND\b/, /\bWALES\b/, /\bIRELAND\b/,
+      /\bGERMANY\b/, /\bDEUTSCHLAND\b/, /\bFRANCE\b/, /\bITALY\b/, /\bITALIA\b/,
+      /\bSPAIN\b/, /\bESPANA\b/, /\bPORTUGAL\b/, /\bMEXICO\b/, /\bBRASIL\b/, /\bBRAZIL\b/,
+      /\bCHINA\b/, /\bJAPAN\b/, /\bKOREA\b/, /\bINDIA\b/, /\bPHILIPPINES\b/,
+      /\bAUSTRALIA\b/, /\bNEW ZEALAND\b/, /\bISRAEL\b/, /\bHUNGARY\b/, /\bBUDAPEST\b/i,
+      /\bNETHERLANDS\b/, /\bBELGIUM\b/, /\bSWITZERLAND\b/, /\bAUSTRIA\b/, /\bPOLAND\b/,
+      /\bRUSSIA\b/, /\bUKRAINE\b/, /\bGREECE\b/, /\bTURKEY\b/, /\bVENEZUELA\b/, /\bCOLOMBIA\b/,
+      /\bARGENTINA\b/, /\bCHILE\b/, /\bPERU\b/, /\bPUERTO RICO\b/, /\bCZECH\b/, /\bSLOVAK\b/,
+      // Puerto Rico cities and patterns
+      /\bBAYAMON\b/i, /\bSAN JUAN\b/i, /\bPONCE\b/i, /\bCAGUAS\b/i, /\bMAYAGUEZ\b/i,
+      /\bARECIBO\b/i, /\bAGUADILLA\b/i, /\bCAROLINA\b/i, /\bGUAYNABO\b/i,
+      /\bPR\s*\d{5}/, /\b00[6-9]\d{2}\b/, // PR zip codes start with 006-009
+      // French West Indies / Caribbean
+      /\bFWI\b/i, /\bSAINT MARTIN\b/i, /\bST MARTIN\b/i, /\bGUADELOUPE\b/i,
+      /\bMARTINIQUE\b/i, /\bGALISBAY\b/i, /\b97\d{3}\b/, // French overseas postal codes
+      // US Territories to exclude
+      /\bGUAM\b/i, /\bVIRGIN ISLANDS\b/i, /\bUSVI\b/i, /\bAMERICAN SAMOA\b/i,
+      // Foreign postal codes - Canadian
+      /\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b/,
+      // UK postal codes
+      /\b[A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}\b/,
+      // Foreign address patterns
+      /\bVIA\s+[A-Z]+/i, // Italian "Via" streets
+      /\bRUE\s+[A-Z]+/i, // French "Rue" streets
+      /\bAVENIDA\s+[A-Z]+/i, // Spanish/Portuguese "Avenida"
+      /\bCALLE\s+[A-Z]+/i, // Spanish "Calle"
+      /\bSTRASSE\b/i, // German "Strasse"
+      /\bSTR\s+\d/i, /\bSTR\.\s*\d/i, // German/European "Str 14" or "Str. 14"
+      /\bVERCSE\b/i, // Hungarian street
+      /\bUTCA\b/i, /\bUT\.\b/i, /\bKRT\b/i, // Hungarian street types
+      /\bURB\s+[A-Z]+/i, // Spanish "Urbanizacion"
+      /\bCONDOMINIO\b/i, // Spanish/Portuguese
+      /\bCEP\s*\d{5}/i, // Brazilian postal code
+      /\bEDO\s+[A-Z]+/i, // Spanish state abbreviation
+      /\bCHAPELLE\b/i, // French
+      /\bLAZIO\b/i, /\bROMA\b/i, /\bMILANO\b/i, // Italian regions
+      /\bCENTRE COMMERCIAL\b/i, // French shopping center
+      // Patterns ending with country-like suffixes (merged into address)
+      /SWITZERLAND$/i, /FRANCE$/i, /ITALY$/i, /TALY$/i, /HUNGARY$/i,
+      /WITZERLAND$/i, /RANCE$/i, /UNGARY$/i,
+      // Foreign city names embedded (including merged)
+      /BUDAPEST/i, /\bPARIS\b/, /\bLONDON\b/,
+      /\bBARHALTEN\b/i, /\bNIKLAUSEN\b/i, /\bTHOUARAULT\b/i, /\bMERIDA\b/i,
+      // Pattern: number + city merged like "14budapest" or "Fwi97150"
+      /\d+[A-Z]{4,}/i, /[A-Z]{3,}\d{5}/i
+    ];
+
     function isForeignAddress(address, city) {
       const upper = (address + ' ' + city).toUpperCase();
-      const foreignPatterns = [
-        // Country names
-        /\bCANADA\b/, /\bONTARIO\b/, /\bQUEBEC\b/, /\bALBERTA\b/, /\bBRITISH COLUMBIA\b/,
-        /\bUNITED KINGDOM\b/, /\bENGLAND\b/, /\bSCOTLAND\b/, /\bWALES\b/, /\bIRELAND\b/,
-        /\bGERMANY\b/, /\bDEUTSCHLAND\b/, /\bFRANCE\b/, /\bITALY\b/, /\bITALIA\b/,
-        /\bSPAIN\b/, /\bESPANA\b/, /\bPORTUGAL\b/, /\bMEXICO\b/, /\bBRASIL\b/, /\bBRAZIL\b/,
-        /\bCHINA\b/, /\bJAPAN\b/, /\bKOREA\b/, /\bINDIA\b/, /\bPHILIPPINES\b/,
-        /\bAUSTRALIA\b/, /\bNEW ZEALAND\b/, /\bISRAEL\b/, /\bHUNGARY\b/, /\bBUDAPEST\b/i,
-        /\bNETHERLANDS\b/, /\bBELGIUM\b/, /\bSWITZERLAND\b/, /\bAUSTRIA\b/, /\bPOLAND\b/,
-        /\bRUSSIA\b/, /\bUKRAINE\b/, /\bGREECE\b/, /\bTURKEY\b/, /\bVENEZUELA\b/, /\bCOLOMBIA\b/,
-        /\bARGENTINA\b/, /\bCHILE\b/, /\bPERU\b/, /\bPUERTO RICO\b/, /\bCZECH\b/, /\bSLOVAK\b/,
-        // Puerto Rico cities and patterns
-        /\bBAYAMON\b/i, /\bSAN JUAN\b/i, /\bPONCE\b/i, /\bCAGUAS\b/i, /\bMAYAGUEZ\b/i,
-        /\bARECIBO\b/i, /\bAGUADILLA\b/i, /\bCAROLINA\b/i, /\bGUAYNABO\b/i,
-        /\bPR\s*\d{5}/, /\b00[6-9]\d{2}\b/, // PR zip codes start with 006-009
-        // French West Indies / Caribbean
-        /\bFWI\b/i, /\bSAINT MARTIN\b/i, /\bST MARTIN\b/i, /\bGUADELOUPE\b/i,
-        /\bMARTINIQUE\b/i, /\bGALISBAY\b/i, /\b97\d{3}\b/, // French overseas postal codes
-        // US Territories to exclude
-        /\bGUAM\b/i, /\bVIRGIN ISLANDS\b/i, /\bUSVI\b/i, /\bAMERICAN SAMOA\b/i,
-        // Foreign postal codes - Canadian
-        /\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b/,
-        // UK postal codes
-        /\b[A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}\b/,
-        // Foreign address patterns
-        /\bVIA\s+[A-Z]+/i, // Italian "Via" streets
-        /\bRUE\s+[A-Z]+/i, // French "Rue" streets
-        /\bAVENIDA\s+[A-Z]+/i, // Spanish/Portuguese "Avenida"
-        /\bCALLE\s+[A-Z]+/i, // Spanish "Calle"
-        /\bSTRASSE\b/i, // German "Strasse"
-        /\bSTR\s+\d/i, /\bSTR\.\s*\d/i, // German/European "Str 14" or "Str. 14"
-        /\bVERCSE\b/i, // Hungarian street
-        /\bUTCA\b/i, /\bUT\.\b/i, /\bKRT\b/i, // Hungarian street types
-        /\bURB\s+[A-Z]+/i, // Spanish "Urbanizacion"
-        /\bCONDOMINIO\b/i, // Spanish/Portuguese
-        /\bCEP\s*\d{5}/i, // Brazilian postal code
-        /\bEDO\s+[A-Z]+/i, // Spanish state abbreviation
-        /\bCHAPELLE\b/i, // French
-        /\bLAZIO\b/i, /\bROMA\b/i, /\bMILANO\b/i, // Italian regions
-        /\bCENTRE COMMERCIAL\b/i, // French shopping center
-        // Patterns ending with country-like suffixes (merged into address)
-        /SWITZERLAND$/i, /FRANCE$/i, /ITALY$/i, /TALY$/i, /HUNGARY$/i,
-        /WITZERLAND$/i, /RANCE$/i, /UNGARY$/i,
-        // Foreign city names embedded (including merged)
-        /BUDAPEST/i, /\bPARIS\b/, /\bLONDON\b/,
-        /\bBARHALTEN\b/i, /\bNIKLAUSEN\b/i, /\bTHOUARAULT\b/i, /\bMERIDA\b/i,
-        // Pattern: number + city merged like "14budapest" or "Fwi97150"
-        /\d+[A-Z]{4,}/i, /[A-Z]{3,}\d{5}/i
-      ];
-      return foreignPatterns.some(p => p.test(upper));
+      return FOREIGN_PATTERNS.some(p => p.test(upper));
     }
 
     function isValidCity(city) {
@@ -4162,7 +4183,7 @@
         'Grv ': 'Grove ', 'Grvs ': 'Groves ',
         'Plc ': 'Place ', 'Plc.': 'Place', 'Pl ': 'Place ',
         'Cir ': 'Circle ', 'Crcl ': 'Circle ',
-        'Ter ': 'Terrace ', 'Ter.': 'Terrace', 'Trc ': 'Terrace ',
+        'Ter ': 'Terrace ', 'Ter.': 'Terrace',
         'Trce ': 'Trace ', 'Trc ': 'Trace ',
         'Xing ': 'Crossing ', 'Xing.': 'Crossing', 'Crssng ': 'Crossing ',
         'Ldg ': 'Landing ', 'Ldg.': 'Landing', 'Lndg ': 'Landing ',
@@ -4232,7 +4253,6 @@
         'Strm ': 'Stream ',
         'Trl ': 'Trail ', 'Tr ': 'Trail ',
         'Tunl ': 'Tunnel ',
-        'Un ': 'Union ',
         'Wl ': 'Well ', 'Wls ': 'Wells ',
         'Wy ': 'Way ',
         // Legal/Plat abbreviations
@@ -4243,7 +4263,6 @@
         'Replat ': 'Replat ', 'Rplt ': 'Replat ', 'Rp ': 'Replat ',
         'Sec ': 'Section ', 'Sect ': 'Section ',
         'Sub ': 'Subdivision ', 'Subd ': 'Subdivision ', 'Subdiv ': 'Subdivision ',
-        'Tr ': 'Tract ',
         'Un ': 'Unit ', 'Ut ': 'Unit '
       };
 
@@ -4402,6 +4421,7 @@
       } catch (e) {
         // localStorage full — save full dataset to IndexedDB (no size limit)
         if (e.name === 'QuotaExceededError') {
+          const historyBackup = localStorage.getItem('poolscraper_history');
           localStorage.removeItem('poolscraper_history');
           try {
             const partialSession = JSON.stringify({
@@ -4413,6 +4433,9 @@
             sessionStorage.setItem('poolscraper_session', partialSession);
             showToast('Large dataset — saved to IndexedDB + partial localStorage');
           } catch (e2) {
+            if (historyBackup) {
+              try { localStorage.setItem('poolscraper_history', historyBackup); } catch (_) { /* truly full */ }
+            }
             showToast('Saved to IndexedDB (localStorage full)');
           }
         }
@@ -4834,12 +4857,12 @@
 
       const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode'];
       const rows = exportable.map(r => [
-        `"${(r.recipient || 'Current Resident').replace(/"/g, '""')}"`,
-        `"${(r.company || '').replace(/"/g, '""')}"`,
-        `"${(r.address || '').replace(/"/g, '""')}"`,
-        `"${(r.city || '').replace(/"/g, '""')}"`,
-        `"${(r.state || '').replace(/"/g, '""')}"`,
-        `"${(r.zipcode || '').replace(/"/g, '""')}"`
+        `"${csvSafe(r.recipient || 'Current Resident')}"`,
+        `"${csvSafe(r.company || '')}"`,
+        `"${csvSafe(r.address || '')}"`,
+        `"${csvSafe(r.city || '')}"`,
+        `"${csvSafe(r.state || '')}"`,
+        `"${csvSafe(r.zipcode || '')}"`
       ].join(','));
       const csv = [headers.join(','), ...rows].join('\n');
 
@@ -4867,21 +4890,21 @@
       const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode', 'Subdivision', 'Type', 'Value', 'Lot SqFt', 'Living SqFt', 'Pool Age', 'Sale Date', 'Days Since Sale', 'Triggers'];
       const rows = data.map(r => {
         return [
-          `"${(r.recipient || 'Current Resident').replace(/"/g, '""')}"`,
-          `"${(r.company || '').replace(/"/g, '""')}"`,
-          `"${(r.address || '').replace(/"/g, '""')}"`,
-          `"${(r.city || '').replace(/"/g, '""')}"`,
-          `"${(r.state || '').replace(/"/g, '""')}"`,
-          `"${(r.zipcode || '').replace(/"/g, '""')}"`,
-          `"${(r.subdivision || '').replace(/"/g, '""')}"`,
+          `"${csvSafe(r.recipient || 'Current Resident')}"`,
+          `"${csvSafe(r.company || '')}"`,
+          `"${csvSafe(r.address || '')}"`,
+          `"${csvSafe(r.city || '')}"`,
+          `"${csvSafe(r.state || '')}"`,
+          `"${csvSafe(r.zipcode || '')}"`,
+          `"${csvSafe(r.subdivision || '')}"`,
           `"${r.isAbsentee ? 'Absentee' : 'Owner'}"`,
-          `"${(r.propertyValue || '').replace(/"/g, '""')}"`,
+          `"${csvSafe(r.propertyValue || '')}"`,
           `"${r.lotSize || ''}"`,
           `"${r.livingArea || ''}"`,
           `"${r.poolAge || ''}"`,
-          `"${r.saleDate || ''}"`,
+          `"${csvSafe(r.saleDate || '')}"`,
           `"${r.daysSinceSale !== null ? r.daysSinceSale : ''}"`,
-          `"${(r.triggers || []).join('; ').replace(/"/g, '""')}"`
+          `"${csvSafe((r.triggers || []).join('; '))}"`
         ].join(',');
       });
       return [headers.join(','), ...rows].join('\n');
@@ -5091,7 +5114,7 @@
         if (labelCount % 30 === 0 && labelCount > 0) html += '</div>';
         if (labelCount % 30 === 0) html += '<div class="page">';
 
-        rowLabels.push(`<div class="label"><div class="label-name">${r.recipient || 'Current Resident'}</div><div class="label-addr">${r.address}</div><div class="label-addr">${r.city}, ${r.state} ${r.zipcode}</div></div>`);
+        rowLabels.push(`<div class="label"><div class="label-name">${escapeHtml(r.recipient || 'Current Resident')}</div><div class="label-addr">${escapeHtml(r.address)}</div><div class="label-addr">${escapeHtml(r.city)}, ${escapeHtml(r.state)} ${escapeHtml(r.zipcode)}</div></div>`);
 
         if (rowLabels.length === 3) {
           html += '<div class="label-row">' + rowLabels.join('') + '</div>';
@@ -5252,7 +5275,7 @@
               cache[key] = { lat: geo.lat, lng: geo.lng, ts: Date.now() };
               geocoded++;
             }
-          } catch { /* skip */ }
+          } catch (e) { console.warn('[scraper] geocoding failed for subdivision:', name, e.message); }
           if (i < subdivs.length - 1) await new Promise(r => setTimeout(r, 50));
         }
         saveGeoCache(cache);
@@ -5269,7 +5292,7 @@
         const priority = new Map();
         ordered.forEach((n, i) => priority.set(n, i));
 
-        routeSource.sort((a, b) => {
+        filteredResults = [...filteredResults].sort((a, b) => {
           const pa = priority.get((a.subdivision || 'UNKNOWN').trim()) ?? priority.size;
           const pb = priority.get((b.subdivision || 'UNKNOWN').trim()) ?? priority.size;
           if (pa !== pb) return pa - pb;
@@ -5281,8 +5304,6 @@
           return parseInt((a.address || '').match(/^\d+/)?.[0] || '0') -
                  parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
         });
-
-        filteredResults = routeSource;
         renderTable();
         showToast(`Sorted ${total} subdivisions by walking route (${geocoded} geocoded)`);
       } catch (err) {
@@ -5296,7 +5317,7 @@
     // Open current page addresses in Google Maps for driving route
     function openGoogleMapsRoute() {
       // Get current page addresses (property addresses for door-to-door)
-      const pageSize = parseInt(document.getElementById('pageSizeSelect').value) || 50;
+      const pageSize = parseInt(document.getElementById('perPageSelect').value) || 50;
       const startIdx = (currentPage - 1) * pageSize;
       const pageResults = filteredResults.slice(startIdx, startIdx + pageSize);
 
@@ -5380,7 +5401,12 @@
       });
 
       mailedAddresses = Object.keys(mailedTracker);
-      localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+      try {
+        localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+      } catch (e) {
+        showToast('Warning: Could not save mailed tracker — storage full', 'error');
+        console.warn('[scraper] mailed tracker save failed:', e.message);
+      }
       updateMailedBadge();
       return addedCount;
     }
@@ -5543,6 +5569,7 @@
 
     // Clear all
     function clearAll() {
+      clearInterval(_autoSaveInterval);
       fileContent = null;
       parsedRows = [];
       headers = [];
@@ -5624,7 +5651,7 @@
     }
 
     function persistSubdivSelections() {
-      try { localStorage.setItem('poolscraper_subdivSelections', JSON.stringify([...selectedSubdivisions])); } catch (e) { console.warn('[scraper] subdiv persist:', e.message); }
+      try { localStorage.setItem('poolscraper_subdivSelections', JSON.stringify([...selectedSubdivisions])); } catch (e) { console.warn('[scraper] subdiv persist:', e.message); showToast('Warning: Could not save subdivision selections — storage full', 'error'); }
     }
 
     function onSubdivToggle(cb) {
@@ -5770,7 +5797,12 @@
     // ============== CAMPAIGN MANAGEMENT ==============
 
     function saveCampaigns() {
-      localStorage.setItem('poolscraper_campaigns', JSON.stringify(campaigns));
+      try {
+        localStorage.setItem('poolscraper_campaigns', JSON.stringify(campaigns));
+      } catch (e) {
+        showToast('Warning: Could not save campaigns — storage full', 'error');
+        console.warn('[scraper] campaign save failed:', e.message);
+      }
       updateCampaignBadge();
       renderCampaignList();
       updateCampaignStats();
@@ -5854,14 +5886,14 @@
     function exportCampaignCSV(campaign) {
       const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode', 'Campaign', 'PromoCode'];
       const rows = campaign.addresses.map(r => [
-        `"${(r.recipient || 'Current Resident').replace(/"/g, '""')}"`,
+        `"${csvSafe(r.recipient || 'Current Resident')}"`,
         `""`,
-        `"${(r.address || '').replace(/"/g, '""')}"`,
-        `"${(r.city || '').replace(/"/g, '""')}"`,
-        `"${(r.state || '').replace(/"/g, '""')}"`,
-        `"${(r.zipcode || '').replace(/"/g, '""')}"`,
-        `"${campaign.name}"`,
-        `"${campaign.promoCode}"`
+        `"${csvSafe(r.address || '')}"`,
+        `"${csvSafe(r.city || '')}"`,
+        `"${csvSafe(r.state || '')}"`,
+        `"${csvSafe(r.zipcode || '')}"`,
+        `"${csvSafe(campaign.name)}"`,
+        `"${csvSafe(campaign.promoCode)}"`
       ].join(','));
 
       const csv = [headers.join(','), ...rows].join('\n');
@@ -5974,10 +6006,10 @@
             <tbody>
               ${readyAddresses.slice(0, 50).map(a => `
                 <tr style="border-bottom:1px solid var(--border);">
-                  <td style="padding:6px;">${a.address}, ${a.city}</td>
-                  <td style="padding:6px; color:var(--text-dim);">${a.lastCampaignName}</td>
+                  <td style="padding:6px;">${escapeHtml(a.address)}, ${escapeHtml(a.city)}</td>
+                  <td style="padding:6px; color:var(--text-dim);">${escapeHtml(a.lastCampaignName)}</td>
                   <td style="text-align:center; padding:6px;">${a.mailCount}x</td>
-                  <td style="text-align:center; padding:6px; color:var(--text-dim);">${a.lastMailed}</td>
+                  <td style="text-align:center; padding:6px; color:var(--text-dim);">${escapeHtml(a.lastMailed)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -6003,7 +6035,7 @@
           </div>
           <div>
             <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Tracking Link</div>
-            <div style="font-size:14px;">${campaign.trackingLink ? `<a href="${escapeHtml(campaign.trackingLink)}" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);">${escapeHtml(campaign.trackingLink)}</a>` : '-'}</div>
+            <div style="font-size:14px;">${campaign.trackingLink ? `<a href="${/^https?:\/\//i.test(campaign.trackingLink) ? escapeHtml(campaign.trackingLink) : '#'}" target="_blank" rel="noopener noreferrer" style="color:var(--cyan);">${escapeHtml(campaign.trackingLink)}</a>` : '-'}</div>
           </div>
           <div>
             <div style="font-size:11px; color:var(--text-dim); text-transform:uppercase;">Target Area</div>
@@ -6023,7 +6055,7 @@
           </div>
         </div>
 
-        ${campaign.notes ? `<div style="margin-bottom:20px; padding:12px; background:var(--bg); border-radius:6px;"><strong>Notes:</strong> ${campaign.notes}</div>` : ''}
+        ${campaign.notes ? `<div style="margin-bottom:20px; padding:12px; background:var(--bg); border-radius:6px;"><strong>Notes:</strong> ${escapeHtml(campaign.notes)}</div>` : ''}
 
         <div style="display:flex; gap:10px; margin-bottom:20px;">
           <button class="btn btn-success" onclick="logCampaignCall('${campaign.id}'); openCampaignDetail('${campaign.id}');">📞 Log Call (+1)</button>
@@ -6046,10 +6078,10 @@
             <tbody>
               ${(campaign.addresses || []).map(a => `
                 <tr style="border-bottom:1px solid var(--border);">
-                  <td style="padding:8px;">${a.recipient || 'Current Resident'}</td>
-                  <td style="padding:8px;">${a.address}</td>
-                  <td style="padding:8px;">${a.city}</td>
-                  <td style="padding:8px;">${a.zipcode}</td>
+                  <td style="padding:8px;">${escapeHtml(a.recipient || 'Current Resident')}</td>
+                  <td style="padding:8px;">${escapeHtml(a.address)}</td>
+                  <td style="padding:8px;">${escapeHtml(a.city)}</td>
+                  <td style="padding:8px;">${escapeHtml(a.zipcode)}</td>
                 </tr>
               `).join('')}
             </tbody>

@@ -633,7 +633,7 @@
         // HTML escape for XSS prevention
         function escapeHtml(str) {
             if (!str) return '';
-            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         // Shared mailed tracker (same as Pool Scraper)
@@ -678,11 +678,15 @@
         }
 
         // Show address on Google Maps satellite
+        let _mapDebounceTimer = null;
         function showOnMap(address) {
             if (!promptMapToken()) return;
-            const query = encodeURIComponent(address);
-            const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${GMAP_TOKEN}&q=${query}&maptype=satellite&zoom=20`;
-            document.getElementById('mapFrame').src = mapUrl;
+            clearTimeout(_mapDebounceTimer);
+            _mapDebounceTimer = setTimeout(() => {
+                const query = encodeURIComponent(address);
+                const mapUrl = `https://www.google.com/maps/embed/v1/place?key=${GMAP_TOKEN}&q=${query}&maptype=satellite&zoom=20`;
+                document.getElementById('mapFrame').src = mapUrl;
+            }, 300);
         }
 
         function openAddModal() {
@@ -844,7 +848,7 @@
             for (let i = 0; i < addresses.length; i++) {
                 const a = addresses[i];
                 if (filter !== 'all' && filter !== 'unreviewed' && a.status !== filter) continue;
-                if (filter === 'unreviewed' && a.status) continue;
+                if (filter === 'unreviewed' && a.status !== 'unreviewed') continue;
                 if (subdivFilter !== 'all' && (a.subdivision || '').toLowerCase() !== subdivFilter.toLowerCase()) continue;
                 if (search && !a.fullAddress.toLowerCase().includes(search) && !a.name.toLowerCase().includes(search) && !(a.subdivision || '').toLowerCase().includes(search)) continue;
 
@@ -906,21 +910,21 @@
             const resolved = resolveMailAddress(addr);
             if (addr.propertyAddress) details += `<div class="detail-item"><div class="detail-label">🏠 Property</div><div class="detail-value" style="color:${resolved.source === 'Property' ? 'var(--cyan)' : 'var(--text-dim)'};${resolved.source === 'Property' ? 'font-weight:bold;' : ''}">${escapeHtml(addr.propertyAddress)}${resolved.source === 'Property' ? ' ← export' : ''}</div></div>`;
             if (addr.mailingAddress) details += `<div class="detail-item"><div class="detail-label">✉ Mailing</div><div class="detail-value" style="color:${resolved.source === 'Mailing' ? 'var(--orange)' : 'var(--text-dim)'};${resolved.source === 'Mailing' ? 'font-weight:bold;' : ''}">${escapeHtml(addr.mailingAddress)}${resolved.source === 'Mailing' ? ' ← export' : ''}</div></div>`;
-            if (addr.value) details += `<div class="detail-item"><div class="detail-label">Value</div><div class="detail-value">${addr.value}</div></div>`;
-            if (addr.year) details += `<div class="detail-item"><div class="detail-label">Year Built</div><div class="detail-value">${addr.year}</div></div>`;
-            if (addr.age) details += `<div class="detail-item"><div class="detail-label">Pool Age</div><div class="detail-value">${addr.age}y</div></div>`;
+            if (addr.value) details += `<div class="detail-item"><div class="detail-label">Value</div><div class="detail-value">${escapeHtml(addr.value)}</div></div>`;
+            if (addr.year) details += `<div class="detail-item"><div class="detail-label">Year Built</div><div class="detail-value">${escapeHtml(addr.year)}</div></div>`;
+            if (addr.age) details += `<div class="detail-item"><div class="detail-label">Pool Age</div><div class="detail-value">${escapeHtml(addr.age)}y</div></div>`;
             if (addr.verifiedAt) details += `<div class="detail-item"><div class="detail-label">Verified</div><div class="detail-value">${new Date(addr.verifiedAt).toLocaleDateString()}</div></div>`;
 
             // Show mailed info from shared tracker
             const mailInfo = getMailedInfo(addr.address, addr.city, addr.zip);
             if (mailInfo) {
-                details += `<div class="detail-item"><div class="detail-label">Mailed</div><div class="detail-value" style="color:var(--cyan);">${mailInfo.count}x (last: ${mailInfo.lastMailed})</div></div>`;
+                details += `<div class="detail-item"><div class="detail-label">Mailed</div><div class="detail-value" style="color:var(--cyan);">${escapeHtml(mailInfo.count)}x (last: ${escapeHtml(mailInfo.lastMailed)})</div></div>`;
             }
 
             // Show campaign info
             const campInfo = getCampaignInfo(addr.address, addr.city, addr.zip);
             if (campInfo) {
-                details += `<div class="detail-item"><div class="detail-label">Campaign</div><div class="detail-value" style="color:var(--orange);">${campInfo.name}</div></div>`;
+                details += `<div class="detail-item"><div class="detail-label">Campaign</div><div class="detail-value" style="color:var(--orange);">${escapeHtml(campInfo.name)}</div></div>`;
             }
             document.getElementById('currentDetails').innerHTML = details;
 
@@ -1164,7 +1168,7 @@
             // Save for undo (bulk)
             const changes = [];
             selectedIndices.forEach(idx => {
-                changes.push({ idx, oldStatus: addresses[idx].status });
+                changes.push({ idx, oldStatus: addresses[idx].status, oldVerifiedAt: addresses[idx].verifiedAt ?? null });
                 addresses[idx].status = status;
                 addresses[idx].verifiedAt = new Date().toISOString();
             });
@@ -1218,7 +1222,8 @@
 
         // ============== UNDO FUNCTION ==============
         function saveForUndo(type, idx, oldValue) {
-            undoStack.push({ type, idx, oldValue });
+            const oldVerifiedAt = addresses[idx]?.verifiedAt ?? null;
+            undoStack.push({ type, idx, oldValue, oldVerifiedAt });
             if (undoStack.length > MAX_UNDO) undoStack.shift();
             document.getElementById('undoBtn').disabled = false;
         }
@@ -1230,11 +1235,11 @@
 
             if (action.type === 'status') {
                 addresses[action.idx].status = action.oldValue || 'unreviewed';
-                addresses[action.idx].verifiedAt = null;
+                addresses[action.idx].verifiedAt = action.oldVerifiedAt ?? null;
             } else if (action.type === 'bulk-status') {
                 action.changes.forEach(c => {
                     addresses[c.idx].status = c.oldStatus || 'unreviewed';
-                    addresses[c.idx].verifiedAt = null;
+                    addresses[c.idx].verifiedAt = c.oldVerifiedAt ?? null;
                 });
             }
 
@@ -1385,7 +1390,9 @@
             }));
 
             // Load saved verification status
-            const savedData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}');
+            let savedData = {};
+            try { savedData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}'); }
+            catch (e) { console.warn('[verifier] savedData parse:', e.message); }
 
             const incoming = data.map((d, i) => {
                 const addr = {
@@ -1419,6 +1426,8 @@
 
             // Replace addresses with fresh scraper data
             addresses = incoming;
+            selectedIndices.clear();
+            undoStack.length = 0;
 
             // Persist immediately before clearing transfer keys
             saveVerifierSession();
@@ -1864,12 +1873,24 @@
             const select = document.getElementById('subdivisionFilter');
             if (!select) return;
 
-            const subdivs = [...new Set(addresses.map(a => a.subdivision).filter(s => s && s.trim()))].sort();
+            // Single-pass count map instead of O(n*k)
+            const subdivCounts = new Map();
+            addresses.forEach(a => {
+                const s = (a.subdivision || '').trim();
+                if (s) subdivCounts.set(s, (subdivCounts.get(s) || 0) + 1);
+            });
+            const subdivs = [...subdivCounts.keys()].sort();
 
-            select.innerHTML = '<option value="all">All Subdivisions (' + addresses.length + ')</option>';
+            select.innerHTML = '';
+            const allOpt = document.createElement('option');
+            allOpt.value = 'all';
+            allOpt.textContent = `All Subdivisions (${addresses.length})`;
+            select.appendChild(allOpt);
             subdivs.forEach(s => {
-                const count = addresses.filter(a => a.subdivision === s).length;
-                select.innerHTML += `<option value="${escapeHtml(s)}">${escapeHtml(s)} (${count})</option>`;
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = `${s} (${subdivCounts.get(s)})`;
+                select.appendChild(opt);
             });
         }
 
@@ -2003,13 +2024,13 @@
             const rows = sorted.map((a, i) => {
                 return [
                     i + 1,
-                    `"${(a.name || 'Current Resident').replace(/"/g, '""')}"`,
-                    `"${(a.address || '').replace(/"/g, '""')}"`,
-                    `"${(a.city || '').replace(/"/g, '""')}"`,
-                    `"${(a.state || '').replace(/"/g, '""')}"`,
-                    `"${(a.zip || '').replace(/"/g, '""')}"`,
-                    `"${(a.status || 'pending').replace(/"/g, '""')}"`,
-                    `"${(a.value || '').replace(/"/g, '""')}"`
+                    `"${csvSafe(a.name || 'Current Resident')}"`,
+                    `"${csvSafe(a.address || '')}"`,
+                    `"${csvSafe(a.city || '')}"`,
+                    `"${csvSafe(a.state || '')}"`,
+                    `"${csvSafe(a.zip || '')}"`,
+                    `"${csvSafe(a.status || 'pending')}"`,
+                    `"${csvSafe(a.value || '')}"`
                 ].join(',');
             });
 
@@ -2152,6 +2173,8 @@
             localStorage.removeItem('poolscraper_filtered');
             addresses = [];
             currentIndex = -1;
+            selectedIndices.clear();
+            undoStack.length = 0;
             document.getElementById('addressList').innerHTML = '<div class="empty-state"><p>Load a CSV to begin</p></div>';
             document.getElementById('currentPanel').style.display = 'none';
             document.getElementById('actionPanel').style.display = 'none';

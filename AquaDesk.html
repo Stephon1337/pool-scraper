@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-src 'self'; img-src 'self' data:;">
   <title>AquaDesk</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -171,11 +172,11 @@
   <div class="iframe-wrap" id="frame-verifier"></div>
 
   <script>
-    const toolFiles = {
+    const toolFiles = Object.freeze({
       postcard: 'postcard.html',
       scraper: 'pool-scraper.html',
       verifier: 'PoolVerifier.html'
-    };
+    });
     const loaded = {};
 
     function setActiveTab(id) {
@@ -238,7 +239,7 @@
       if (totalCost > 0) {
         const roi = ((totalRevenue - totalCost) / totalCost * 100).toFixed(0);
         document.getElementById('stat-roi').textContent = roi + '%';
-        roiCard.classList.add(roi >= 0 ? 'positive' : 'negative');
+        roiCard.classList.add(Number(roi) >= 0 ? 'positive' : 'negative');
       } else {
         document.getElementById('stat-roi').textContent = '--';
       }
@@ -255,10 +256,10 @@
         const date = c.dateCreated ? new Date(c.dateCreated).toLocaleDateString() : '--';
         return `<tr>
           <td style="font-weight:600;">${esc(c.name || 'Untitled')}</td>
-          <td>${sent}</td>
-          <td>${c.calls || 0}</td>
-          <td>$${(c.revenue || 0).toLocaleString()}</td>
-          <td style="color:#8a8d9a;">${date}</td>
+          <td>${esc(String(sent))}</td>
+          <td>${esc(String(c.calls || 0))}</td>
+          <td>$${esc(String((c.revenue || 0).toLocaleString()))}</td>
+          <td style="color:#8a8d9a;">${esc(date)}</td>
         </tr>`;
       }).join('');
     }
@@ -266,7 +267,11 @@
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
     refreshDashboard();
-    window.addEventListener('storage', refreshDashboard);
+    let _dashDebounce = null;
+    window.addEventListener('storage', () => {
+      clearTimeout(_dashDebounce);
+      _dashDebounce = setTimeout(refreshDashboard, 100);
+    });
 
     function loadTool(id) {
       if (!toolFiles.hasOwnProperty(id)) return;

@@ -8,7 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js" integrity="sha384-zESinL+vR3OR5XGFqKjneclbVKOL8SfP+fKKO3K9BHAaPtboci56Vu3g5flevHk9" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:;">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -2229,7 +2229,7 @@
             </button>
           </div>
         </div>
-        <button class="btn btn-success" onclick="exportForVistaprint()">
+        <button class="btn btn-success" onclick="exportForVistaprint(event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
@@ -2597,7 +2597,7 @@
             <div id="exportPrintContent" class="section-content" style="display:none;">
               <!-- PDF Export -->
               <div class="mini-section">
-                <button class="quick-btn" onclick="exportToPDF()" style="width:100%;background:linear-gradient(135deg, #ef4444, #dc2626);">Export as PDF</button>
+                <button class="quick-btn" onclick="exportToPDF(event)" style="width:100%;background:linear-gradient(135deg, #ef4444, #dc2626);">Export as PDF</button>
               </div>
               <!-- Batch Export -->
               <div class="mini-section">
@@ -2605,7 +2605,7 @@
                   <select id="batchCount" class="compact-select" style="width:70px;">
                     <option value="3">3</option><option value="5" selected>5</option><option value="10">10</option>
                   </select>
-                  <button class="quick-btn" onclick="batchExport()" style="flex:1;">Batch Export</button>
+                  <button class="quick-btn" onclick="batchExport(event)" style="flex:1;">Batch Export</button>
                 </div>
               </div>
               <!-- Print Cost -->
@@ -2687,7 +2687,7 @@
                   <button class="quick-btn" onclick="saveCampaign()" style="padding:6px 10px;">Save</button>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-                  <input type="text" id="trackingCode" class="compact-input" placeholder="Promo code" style="flex:1;font-size:9px;">
+                  <input type="text" id="campaignPromoCode" class="compact-input" placeholder="Promo code" style="flex:1;font-size:9px;">
                   <label style="font-size:9px;color:var(--text-muted);display:flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer;">
                     <input type="checkbox" id="alsoTrackCampaign" checked> Track
                   </label>
@@ -3260,7 +3260,7 @@
       if (typeof str !== 'string') return '';
       const div = document.createElement('div');
       div.appendChild(document.createTextNode(str));
-      return div.innerHTML;
+      return div.innerHTML.replace(/'/g, '&#39;');
     }
 
     function sanitizeCSSUrl(url) {
@@ -3305,15 +3305,26 @@
     function autoFitText(container) {
       if (!container) return;
       const els = container.querySelectorAll('h1, h2, p, span, .headline, [contenteditable="true"]');
+      // Batch read: collect measurements for all elements first
+      const measurements = [];
       for (const el of els) {
-        const overflowsV = el.scrollHeight > el.clientHeight + 2;
-        const overflowsH = el.scrollWidth > el.clientWidth + 2;
-        if (!overflowsV && !overflowsH) continue;
-        let size = parseFloat(getComputedStyle(el).fontSize);
-        const min = 7;
-        while (size > min && (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2)) {
+        measurements.push({
+          el,
+          scrollH: el.scrollHeight,
+          clientH: el.clientHeight,
+          scrollW: el.scrollWidth,
+          clientW: el.clientWidth,
+          fontSize: parseFloat(getComputedStyle(el).fontSize)
+        });
+      }
+      // Batch write: apply size changes
+      const MIN_FONT_SIZE = 7;
+      for (const m of measurements) {
+        if (m.scrollH <= m.clientH + 2 && m.scrollW <= m.clientW + 2) continue;
+        let size = m.fontSize;
+        while (size > MIN_FONT_SIZE && (m.el.scrollHeight > m.el.clientHeight + 2 || m.el.scrollWidth > m.el.clientWidth + 2)) {
           size -= 0.5;
-          el.style.fontSize = size + 'px';
+          m.el.style.fontSize = size + 'px';
         }
       }
     }
@@ -4456,7 +4467,7 @@
         amount: discountAmounts[Math.floor(Math.random() * discountAmounts.length)],
         text: discountTexts[Math.floor(Math.random() * discountTexts.length)]
       };
-      currentDesign.cta = ctas[Math.floor(Math.random() * ctas.length)];
+      currentDesign.cta = ctaTexts[Math.floor(Math.random() * ctaTexts.length)];
       currentDesign.testimonial = testimonials[Math.floor(Math.random() * testimonials.length)];
       currentDesign.urgency = urgencyTexts[Math.floor(Math.random() * urgencyTexts.length)];
       currentDesign.trustBadge = trustBadges[Math.floor(Math.random() * trustBadges.length)];
@@ -4636,6 +4647,7 @@
 
     function renderPostcard() {
       const { layout, theme, headline, services, discount, tagline, poolImage, font, logoUrl, logoSize, logoWhiteBox, qrUrl, testimonial, urgency, cta, trustBadge, trustBadge2 } = currentDesign;
+      const safeAccent = sanitizeColor(theme.accent);
       // CTA color: red gradient (60%), orange solid (25%), theme accent (15%)
       const ctaRoll = Math.random();
       const ctaStyle = ctaRoll < CTA_RED_THRESHOLD
@@ -4679,7 +4691,7 @@
       const safeQrUrl = sanitizeCSSUrl(qrUrl);
       const safePrimary = sanitizeColor(theme.primary);
       const safeSecondary = sanitizeColor(theme.secondary);
-      const safeAccent = sanitizeColor(theme.accent);
+      // safeAccent already defined above (before CTA style calculation)
       const showQRCode = (document.getElementById('showQRCode')?.checked ?? true) && (currentDesign.showQRCode !== false);
 
       // Helper function for QR code HTML - returns empty string if QR is disabled
@@ -9487,7 +9499,7 @@
             saveDeletedImages();
           }
         } catch (e) {
-          // Silent fail - reset to defaults
+          console.warn('[postcard] Failed to load saved pool images:', e.message);
         }
       }
     }
@@ -9502,11 +9514,14 @@
 
       container.innerHTML = poolImages.map((url, index) => `
         <div style="position:relative;aspect-ratio:1;border-radius:4px;overflow:hidden;background:#222;">
-          <img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22>Error</text></svg>'">
-          <button onclick="deletePoolImage('${url}')" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(220,53,69,0.9);border:none;color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;" title="Remove image">&times;</button>
+          <img src="${escapeHTML(url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2250%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2212%22>Error</text></svg>'">
+          <button data-img-url="${escapeHTML(url)}" class="pool-img-del-btn" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(220,53,69,0.9);border:none;color:white;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;" title="Remove image">&times;</button>
           <span style="position:absolute;bottom:2px;left:2px;background:rgba(0,0,0,0.7);color:white;font-size:8px;padding:1px 4px;border-radius:2px;">#${index + 1}</span>
         </div>
       `).join('');
+      container.querySelectorAll('.pool-img-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => deletePoolImage(btn.dataset.imgUrl));
+      });
     }
 
     function changeLayout(layout) {
@@ -9987,7 +10002,7 @@
             Object.assign(savedTextContent, data);
           }
         } catch (e) {
-          // Silent fail - use defaults
+          console.warn('[postcard] Failed to load saved text content:', e.message);
         }
       }
     }
@@ -10150,7 +10165,7 @@
                 const base64 = await convertImageToBase64(url);
                 el.style.backgroundImage = `url("${base64}")`;
               } catch (e) {
-                // Silent fail - keep original URL
+                console.warn('[postcard] Failed to convert background image to base64:', e.message);
               }
             })());
           }
@@ -10163,7 +10178,7 @@
               const base64 = await convertImageToBase64(el.src);
               el.src = base64;
             } catch (e) {
-              // Silent fail - keep original src
+              console.warn('[postcard] Failed to convert img src to base64:', e.message);
             }
           })());
         }
@@ -10172,7 +10187,16 @@
       await Promise.all(convertPromises);
     }
 
-    async function exportForVistaprint() {
+    // Vistaprint trim-size dimensions at 300 DPI (module-level constant)
+    const printDimensions = {
+      '4x6': { width: 1800, height: 1200 },
+      '4-25x5-5': { width: 1650, height: 1275 },
+      '5x7': { width: 2100, height: 1500 },
+      '5-5x8-5': { width: 2550, height: 1650 },
+      '6x9': { width: 2700, height: 1800 }
+    };
+
+    async function exportForVistaprint(event) {
       const btn = event.target.closest('button');
       const originalText = btn.innerHTML;
       btn.innerHTML = '<span>Preparing...</span>';
@@ -10229,15 +10253,6 @@
         const sizeConfig = postcardSizes[currentSize];
 
         // Vistaprint expects TRIM SIZE at 300 DPI (they handle bleed)
-        // Official Vistaprint Mailing Services sizes only
-        const printDimensions = {
-          '4x6': { width: 1800, height: 1200 },     // 6" x 4" at 300 DPI
-          '4-25x5-5': { width: 1650, height: 1275 }, // 5.5" x 4.25" at 300 DPI
-          '5x7': { width: 2100, height: 1500 },     // 7" x 5" at 300 DPI
-          '5-5x8-5': { width: 2550, height: 1650 }, // 8.5" x 5.5" at 300 DPI
-          '6x9': { width: 2700, height: 1800 }      // 9" x 6" at 300 DPI
-        };
-
         const targetDims = printDimensions[currentSize] || { width: 2700, height: 1800 };
         const exportWidth = targetDims.width;
         const exportHeight = targetDims.height;
@@ -10774,7 +10789,7 @@
 
       list.innerHTML = favorites.map(f => `
         <div class="favorites-item" onclick="loadFavorite(${f.id})">
-          <span class="favorites-item-name">${f.name}</span>
+          <span class="favorites-item-name">${escapeHTML(f.name)}</span>
           <span class="favorites-item-remove" onclick="removeFavorite(${f.id}, event)">&times;</span>
         </div>
       `).join('');
@@ -10929,7 +10944,7 @@
     }
 
     // ==================== BATCH EXPORT ====================
-    async function batchExport() {
+    async function batchExport(event) {
       const count = parseInt(document.getElementById('batchCount').value);
       const btn = event.target.closest('button');
       const originalText = btn.innerHTML;
@@ -11002,7 +11017,8 @@
         link.href = dataUrl;
         link.click();
       } catch (error) {
-        // Silent fail
+        console.warn('[postcard] exportSingleCard failed:', error.message);
+        showToast('Export failed', 'error');
       }
     }
 
@@ -11056,15 +11072,22 @@
       }
       if (params.has('t')) {
         try {
-          currentDesign.theme = JSON.parse(decodeURIComponent(params.get('t')));
-          updateColorPickers();
+          const parsed = JSON.parse(decodeURIComponent(params.get('t')));
+          // Validate theme colors are proper hex/color values
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.primary) parsed.primary = sanitizeColor(parsed.primary);
+            if (parsed.secondary) parsed.secondary = sanitizeColor(parsed.secondary);
+            if (parsed.accent) parsed.accent = sanitizeColor(parsed.accent);
+            currentDesign.theme = parsed;
+            updateColorPickers();
+          }
         } catch(e) { console.warn('[postcard] theme parse:', e.message); }
       }
       if (params.has('h')) {
-        currentDesign.headline.main = decodeURIComponent(params.get('h'));
+        currentDesign.headline.main = escapeHTML(decodeURIComponent(params.get('h')));
       }
       if (params.has('d')) {
-        currentDesign.discount.amount = decodeURIComponent(params.get('d'));
+        currentDesign.discount.amount = escapeHTML(decodeURIComponent(params.get('d')));
       }
       if (params.has('f')) {
         currentDesign.font = params.get('f');
@@ -11101,6 +11124,17 @@
       }
       if (currentDesign.headline.sub && currentDesign.headline.sub.includes(findText)) {
         currentDesign.headline.sub = currentDesign.headline.sub.split(findText).join(replaceText);
+      }
+      if (currentDesign.discount && currentDesign.discount.text && currentDesign.discount.text.includes(findText)) {
+        currentDesign.discount.text = currentDesign.discount.text.split(findText).join(replaceText);
+      }
+      if (currentDesign.cta && currentDesign.cta.includes(findText)) {
+        currentDesign.cta = currentDesign.cta.split(findText).join(replaceText);
+      }
+      if (currentDesign.services && Array.isArray(currentDesign.services)) {
+        currentDesign.services = currentDesign.services.map(s =>
+          s.includes(findText) ? s.split(findText).join(replaceText) : s
+        );
       }
     }
 
@@ -11144,7 +11178,7 @@
       };
 
       // Temporarily swap and render
-      const originalDesign = {...currentDesign};
+      const originalDesign = JSON.parse(JSON.stringify(currentDesign));
 
       currentDesign.layout = alternativeDesign.layout;
       currentDesign.theme = alternativeDesign.theme;
@@ -11283,7 +11317,7 @@
     }
 
     // PDF Export
-    async function exportToPDF() {
+    async function exportToPDF(event) {
       const { jsPDF } = window.jspdf;
 
       const btn = event.target.closest('button');
@@ -11474,6 +11508,8 @@
         const splitView = document.createElement('div');
         splitView.id = 'beforeAfterSplit';
         splitView.style.cssText = 'display:flex;gap:20px;align-items:center;justify-content:center;';
+        // Intentional raw innerHTML: beforeSnapshot is a clone of the already-rendered postcard
+        // where all interpolated values were sanitized at render time via escapeHTML/sanitizeColor/sanitizeCSSUrl.
         splitView.innerHTML = `
           <div style="text-align:center;">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">BEFORE</div>
@@ -11604,7 +11640,8 @@
 
       document.body.appendChild(modal);
 
-      // Render version A
+      // Render version A — intentional raw innerHTML copy from the already-rendered postcard
+      // where all interpolated values were sanitized at render time via escapeHTML/sanitizeColor/sanitizeCSSUrl.
       document.getElementById('abVersionA').innerHTML = document.getElementById('frontCard').innerHTML;
 
       // Render version B
@@ -11800,16 +11837,37 @@
         const reader = new FileReader();
         reader.onload = function(e) {
           const csv = e.target.result;
+
+          // RFC 4180 compliant CSV parser: handles quoted fields with commas and newlines
+          function parseCSVRow(row) {
+            const fields = [];
+            let i = 0, field = '', inQuotes = false;
+            while (i < row.length) {
+              const ch = row[i];
+              if (inQuotes) {
+                if (ch === '"' && row[i + 1] === '"') { field += '"'; i += 2; }
+                else if (ch === '"') { inQuotes = false; i++; }
+                else { field += ch; i++; }
+              } else {
+                if (ch === '"') { inQuotes = true; i++; }
+                else if (ch === ',') { fields.push(field.trim()); field = ''; i++; }
+                else { field += ch; i++; }
+              }
+            }
+            fields.push(field.trim());
+            return fields;
+          }
+
           const lines = csv.split('\n');
-          const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+          const headers = parseCSVRow(lines[0]).map(h => h.toLowerCase());
 
           mailingList = [];
           for (let i = 1; i < lines.length; i++) {
             if (lines[i].trim()) {
-              const values = lines[i].split(',');
+              const values = parseCSVRow(lines[i]);
               const entry = {};
               headers.forEach((header, idx) => {
-                entry[header] = values[idx]?.trim() || '';
+                entry[header] = values[idx] || '';
               });
               mailingList.push(entry);
             }
@@ -11831,7 +11889,7 @@
 
       container.innerHTML = mailingList.slice(0, 5).map((entry, i) => `
         <div style="padding:4px;background:var(--bg-primary);margin-bottom:2px;border-radius:3px;">
-          ${entry.name || entry.first_name || ''} ${entry.last_name || ''} - ${entry.city || ''}
+          ${escapeHTML(entry.name || entry.first_name || '')} ${escapeHTML(entry.last_name || '')} - ${escapeHTML(entry.city || '')}
         </div>
       `).join('') + (mailingList.length > 5 ? `<div style="color:var(--text-muted);text-align:center;">+ ${mailingList.length - 5} more...</div>` : '');
     }
@@ -11887,15 +11945,31 @@
       const container = document.getElementById('designHistoryGallery');
       const countEl = document.getElementById('historyCount');
 
-      countEl.textContent = visualHistory.length;
+      if (countEl) countEl.textContent = visualHistory.length;
 
-      container.innerHTML = visualHistory.map((item, i) => `
-        <div onclick="loadFromHistory(${i})" style="cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="width:100%;aspect-ratio:1.5;overflow:hidden;border-radius:2px;background:white;">
-            <div style="transform:scale(0.15);transform-origin:top left;width:666%;height:666%;pointer-events:none;">${item.html}</div>
-          </div>
-        </div>
-      `).join('');
+      // item.html is a sanitized snapshot cloned from the rendered postcard (all interpolated
+      // values were already escaped via escapeHTML/sanitizeColor/sanitizeCSSUrl at render time).
+      // Re-injection here is intentional — the HTML is trusted internal output, not user input.
+      container.innerHTML = '';
+      visualHistory.forEach((item, i) => {
+        try {
+          const wrapper = document.createElement('div');
+          wrapper.style.cssText = 'cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px;transition:all 0.2s;';
+          wrapper.onmouseover = function() { this.style.borderColor = 'var(--accent)'; };
+          wrapper.onmouseout = function() { this.style.borderColor = 'var(--border)'; };
+          wrapper.onclick = function() { loadFromHistory(i); };
+          const inner = document.createElement('div');
+          inner.style.cssText = 'width:100%;aspect-ratio:1.5;overflow:hidden;border-radius:2px;background:white;';
+          const scaled = document.createElement('div');
+          scaled.style.cssText = 'transform:scale(0.15);transform-origin:top left;width:666%;height:666%;pointer-events:none;';
+          scaled.innerHTML = item.html;
+          inner.appendChild(scaled);
+          wrapper.appendChild(inner);
+          container.appendChild(wrapper);
+        } catch (e) {
+          console.warn('[postcard] Failed to render history item:', e.message);
+        }
+      });
     }
 
     function loadFromHistory(index) {
@@ -11923,6 +11997,7 @@
       }
 
       const companyName = document.getElementById('companyName').value || 'Pool Service';
+      const safeCompanyName = escapeHTML(companyName);
       const subject = encodeURIComponent(`Postcard Preview - ${safeCompanyName}`);
       const body = encodeURIComponent(`
 Here's a preview of your postcard design:
@@ -11950,7 +12025,7 @@ Generated with Pool Service Postcard Generator
         // Switch to 6x9 if smaller
         if (currentSize === '4x6' || currentSize === '4.25x6' || currentSize === '5x7') {
           changePostcardSize('6x9');
-          document.getElementById('sizeSelect').value = '6x9';
+          document.getElementById('postcardSize').value = '6x9';
         }
       }
 
@@ -11965,9 +12040,12 @@ Generated with Pool Service Postcard Generator
     let dragDropEnabled = false;
     let draggedElement = null;
     let dragOffset = { x: 0, y: 0 };
+    let dragDropListenersAttached = false;
 
     function toggleDragDropMode(enabled) {
+      if (enabled && dragDropListenersAttached) return; // Prevent duplicate listeners
       dragDropEnabled = enabled;
+      dragDropListenersAttached = enabled;
       const postcards = document.querySelectorAll('.postcard-front, .postcard-back');
 
       postcards.forEach(postcard => {
@@ -12089,11 +12167,12 @@ Generated with Pool Service Postcard Generator
     renderHistoryGallery();
 
     // Hook into generateNew to save to visual history
-    const originalGenerateNew = generateNew;
-    window.generateNew = function() {
-      originalGenerateNew();
+    const _baseGenerateNew = generateNew;
+    function generateNewWithHistory() {
+      _baseGenerateNew();
       setTimeout(addToVisualHistory, 100);
-    };
+    }
+    window.generateNew = generateNewWithHistory;
 
     // Toggle Color Palette (collapsible)
     function toggleColorPalette() {
@@ -12165,13 +12244,13 @@ Generated with Pool Service Postcard Generator
     }
 
     // 2. Campaign Manager
-    let campaigns = JSON.parse(localStorage.getItem('postcardCampaigns') || '{}');
+    let campaigns = safeJsonParse(localStorage.getItem('postcardCampaigns'), {});
 
     function saveCampaign() {
       const name = document.getElementById('campaignName').value.trim();
       if (!name) { showToast('Enter campaign name'); return; }
 
-      const promoCode = document.getElementById('trackingCode')?.value || '';
+      const promoCode = document.getElementById('campaignPromoCode')?.value || '';
       campaigns[name] = {
         design: JSON.parse(JSON.stringify(currentDesign)),
         created: new Date().toISOString(),
@@ -12183,10 +12262,10 @@ Generated with Pool Service Postcard Generator
       const alsoTrack = document.getElementById('alsoTrackCampaign');
       if (alsoTrack && alsoTrack.checked) {
         try {
-          const scraperCampaigns = JSON.parse(localStorage.getItem('poolscraper_campaigns') || '[]');
-          const exists = scraperCampaigns.some(c => c.designId === name);
+          const linkedCampaigns = safeJsonParse(localStorage.getItem('postcardLinkedCampaigns'), []);
+          const exists = linkedCampaigns.some(c => c.designId === name);
           if (!exists) {
-            scraperCampaigns.push({
+            linkedCampaigns.push({
               id: 'pc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
               name: name,
               promoCode: promoCode,
@@ -12199,7 +12278,7 @@ Generated with Pool Service Postcard Generator
               notes: '',
               designId: name
             });
-            localStorage.setItem('poolscraper_campaigns', JSON.stringify(scraperCampaigns));
+            safeSetItem('postcardLinkedCampaigns', JSON.stringify(linkedCampaigns));
           }
         } catch (e) {
           console.warn('[postcard] Failed to create tracking campaign:', e.message);
@@ -12224,10 +12303,16 @@ Generated with Pool Service Postcard Generator
       const names = Object.keys(campaigns);
       container.innerHTML = names.length ? names.map(n => `
         <div style="display:flex;align-items:center;gap:4px;padding:3px 0;font-size:10px;">
-          <button onclick="loadCampaign('${n}')" class="quick-btn" style="flex:1;padding:3px 6px;font-size:9px;">${n}</button>
-          <button onclick="deleteCampaign('${n}')" style="background:none;border:none;color:var(--danger);cursor:pointer;">×</button>
+          <button data-campaign="${escapeHTML(n)}" class="quick-btn campaign-load-btn" style="flex:1;padding:3px 6px;font-size:9px;">${escapeHTML(n)}</button>
+          <button data-campaign-del="${escapeHTML(n)}" class="campaign-del-btn" style="background:none;border:none;color:var(--danger);cursor:pointer;">×</button>
         </div>
       `).join('') : '<p style="font-size:9px;color:var(--text-muted);text-align:center;">No campaigns</p>';
+      container.querySelectorAll('.campaign-load-btn').forEach(btn => {
+        btn.addEventListener('click', () => loadCampaign(btn.dataset.campaign));
+      });
+      container.querySelectorAll('.campaign-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteCampaign(btn.dataset.campaignDel));
+      });
     }
 
     function deleteCampaign(name) {
@@ -12491,7 +12576,7 @@ Generated with Pool Service Postcard Generator
     function applyHolidayTheme(theme) {
       if (!theme || !holidayThemes[theme]) return;
       const t = holidayThemes[theme];
-      currentDesign.headline = t.headline;
+      currentDesign.headline = { main: t.headline, sub: currentDesign.headline?.sub || '' };
       currentDesign.primaryColor = t.colors[0];
       currentDesign.discountText = t.discount;
       document.getElementById('headline').value = t.headline;
@@ -12528,11 +12613,13 @@ Generated with Pool Service Postcard Generator
       currentDesign.bodyFont = document.getElementById('bodyFont').value;
 
       // Load Google Fonts dynamically
-      const fonts = [currentDesign.headlineFont, currentDesign.bodyFont].filter(f => f);
+      const VALID_FONT_NAME = /^[a-zA-Z0-9 +\-]+$/;
+      const fonts = [currentDesign.headlineFont, currentDesign.bodyFont].filter(f => f && VALID_FONT_NAME.test(f));
       fonts.forEach(font => {
-        if (!document.querySelector(`link[href*="${font.replace(' ', '+')}"]`)) {
+        const fontParam = font.replace(/ /g, '+');
+        if (!document.querySelector(`link[href*="${fontParam}"]`)) {
           const link = document.createElement('link');
-          link.href = `https://fonts.googleapis.com/css2?family=${font.replace(' ', '+')}:wght@400;600;700&display=swap`;
+          link.href = `https://fonts.googleapis.com/css2?family=${fontParam}:wght@400;600;700&display=swap`;
           link.rel = 'stylesheet';
           document.head.appendChild(link);
         }
@@ -12651,7 +12738,7 @@ Generated with Pool Service Postcard Generator
           status.textContent = `Last saved: ${time}`;
         }
       } catch (e) {
-        // Silent fail - auto-save not critical
+        console.warn('[postcard] Auto-save failed:', e.message);
       }
     }
 
