@@ -952,14 +952,15 @@
     let mailedTracker = {}; try { mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}'); } catch(e){ console.warn('[scraper] mailed parse:', e.message); }
 
     // Migrate old format
-    const oldMailed = JSON.parse(localStorage.getItem('poolscraper_mailed') || '[]');
+    let oldMailed = [];
+    try { oldMailed = JSON.parse(localStorage.getItem('poolscraper_mailed') || '[]'); } catch(e) { console.warn('[scraper] old mailed parse:', e.message); }
     if (oldMailed.length > 0) {
       if (Object.keys(mailedTracker).length === 0) {
         const today = new Date().toISOString().slice(0, 10);
         oldMailed.forEach(addr => {
           mailedTracker[addr.toUpperCase()] = { count: 1, firstMailed: today, lastMailed: today };
         });
-        localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+        try { localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker)); } catch(e) { console.warn('[scraper] migration persist:', e.message); }
       }
       localStorage.removeItem('poolscraper_mailed');
     }
@@ -4207,7 +4208,7 @@
         'Res ': 'Reserve ', 'Rsrv ': 'Reserve ', 'Rsv ': 'Reserve ',
         'Plnt ': 'Plantation ', 'Plntn ': 'Plantation ', 'Plt ': 'Plantation ',
         // Florida-specific
-        'Cov ': 'Cove ', 'Cv ': 'Cove ',
+        'Cov ': 'Cove ',
         'Cyp ': 'Cypress ', 'Cypr ': 'Cypress ',
         'Plm ': 'Palm ', 'Plms ': 'Palms ',
         'Pnta ': 'Punta ', 'Pta ': 'Punta ',
@@ -5368,13 +5369,13 @@
       const rows = sorted.map((r, i) => {
         return [
           i + 1,
-          `"${(r.recipient || 'Current Resident').replace(/"/g, '""')}"`,
-          `"${(r.address || '').replace(/"/g, '""')}"`,
-          `"${(r.city || '').replace(/"/g, '""')}"`,
-          `"${(r.state || '').replace(/"/g, '""')}"`,
-          `"${(r.zipcode || '').replace(/"/g, '""')}"`,
-          `"${(r.propertyValue || '').replace(/"/g, '""')}"`,
-          `"${(r.notes || '').replace(/"/g, '""')}"`
+          csvSafe(r.recipient || 'Current Resident'),
+          csvSafe(r.address || ''),
+          csvSafe(r.city || ''),
+          csvSafe(r.state || ''),
+          csvSafe(r.zipcode || ''),
+          csvSafe(r.propertyValue || ''),
+          csvSafe(r.notes || '')
         ].join(',');
       });
 
@@ -5425,7 +5426,7 @@
       if (!confirm('Clear all mailed addresses?')) return;
       mailedTracker = {};
       mailedAddresses = [];
-      localStorage.setItem('poolscraper_mailed_v2', '{}');
+      try { localStorage.setItem('poolscraper_mailed_v2', '{}'); } catch(e) { console.warn('[scraper] clear mailed persist:', e.message); }
       updateMailedBadge();
       renderMailedList();
       showToast('Mailed list cleared');
@@ -5468,7 +5469,7 @@
         });
 
         mailedAddresses = Object.keys(mailedTracker);
-        localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+        try { localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker)); } catch(e) { showToast('Storage full — import may not persist', 'error'); console.warn('[scraper] mailed import persist:', e.message); }
         updateMailedBadge();
         renderMailedList();
         showToast(`Imported ${addedCount} addresses`);

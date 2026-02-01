@@ -3317,16 +3317,18 @@
           fontSize: parseFloat(getComputedStyle(el).fontSize)
         });
       }
-      // Batch write: apply size changes
+      // Batch write: apply size changes via rAF to avoid layout thrashing
       const MIN_FONT_SIZE = 7;
-      for (const m of measurements) {
-        if (m.scrollH <= m.clientH + 2 && m.scrollW <= m.clientW + 2) continue;
-        let size = m.fontSize;
-        while (size > MIN_FONT_SIZE && (m.el.scrollHeight > m.el.clientHeight + 2 || m.el.scrollWidth > m.el.clientWidth + 2)) {
-          size -= 0.5;
-          m.el.style.fontSize = size + 'px';
+      requestAnimationFrame(() => {
+        for (const m of measurements) {
+          if (m.scrollH <= m.clientH + 2 && m.scrollW <= m.clientW + 2) continue;
+          let size = m.fontSize;
+          while (size > MIN_FONT_SIZE && (m.el.scrollHeight > m.el.clientHeight + 2 || m.el.scrollWidth > m.el.clientWidth + 2)) {
+            size -= 0.5;
+            m.el.style.fontSize = size + 'px';
+          }
         }
-      }
+      });
     }
 
     // ==================== DATA ====================
@@ -4672,8 +4674,7 @@
       const safePhoneDisplay = escapeHTML(phoneDisplay);
       const safeWebsite = escapeHTML(website);
       const safeCity = escapeHTML(city);
-      const safeHeadline = escapeHTML(headline);
-      const safeDiscount = escapeHTML(discount);
+      // headline and discount are objects — escape their sub-properties below, not here
       const safeTagline = escapeHTML(tagline);
       const safeCta = escapeHTML(cta);
       const safeTestimonialText = escapeHTML(testimonial.text);
@@ -11858,19 +11859,39 @@
             return fields;
           }
 
-          const lines = csv.split('\n');
-          const headers = parseCSVRow(lines[0]).map(h => h.toLowerCase());
+          // RFC 4180-compliant row splitting that handles newlines inside quoted fields
+          function splitCSVRows(text) {
+            const rows = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+              const ch = text[i];
+              if (ch === '"') {
+                inQuotes = !inQuotes;
+                current += ch;
+              } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+                if (ch === '\r' && text[i + 1] === '\n') i++;
+                if (current.trim()) rows.push(current);
+                current = '';
+              } else {
+                current += ch;
+              }
+            }
+            if (current.trim()) rows.push(current);
+            return rows;
+          }
+
+          const rows = splitCSVRows(csv);
+          const headers = parseCSVRow(rows[0]).map(h => h.toLowerCase());
 
           mailingList = [];
-          for (let i = 1; i < lines.length; i++) {
-            if (lines[i].trim()) {
-              const values = parseCSVRow(lines[i]);
-              const entry = {};
-              headers.forEach((header, idx) => {
-                entry[header] = values[idx] || '';
-              });
-              mailingList.push(entry);
-            }
+          for (let i = 1; i < rows.length; i++) {
+            const values = parseCSVRow(rows[i]);
+            const entry = {};
+            headers.forEach((header, idx) => {
+              entry[header] = values[idx] || '';
+            });
+            mailingList.push(entry);
           }
 
           document.getElementById('csvStatus').textContent = `${mailingList.length} addresses loaded`;
@@ -11882,6 +11903,7 @@
 
     function renderMailingListPreview() {
       const container = document.getElementById('mailingListPreview');
+      if (!container) return;
       if (mailingList.length === 0) {
         container.innerHTML = '';
         return;
@@ -12577,10 +12599,12 @@ Generated with Pool Service Postcard Generator
       if (!theme || !holidayThemes[theme]) return;
       const t = holidayThemes[theme];
       currentDesign.headline = { main: t.headline, sub: currentDesign.headline?.sub || '' };
-      currentDesign.primaryColor = t.colors[0];
-      currentDesign.discountText = t.discount;
-      document.getElementById('headline').value = t.headline;
-      document.getElementById('primaryColor').value = t.colors[0];
+      currentDesign.theme = { ...currentDesign.theme, accent: t.colors[0] };
+      currentDesign.discount = { ...currentDesign.discount, text: t.discount };
+      const headlineEl = document.getElementById('headline');
+      if (headlineEl) headlineEl.value = t.headline;
+      const colorEl = document.getElementById('primaryColor');
+      if (colorEl) colorEl.value = t.colors[0];
       renderPostcard();
     }
 
@@ -12767,11 +12791,12 @@ Generated with Pool Service Postcard Generator
 
     function updateAllInputs() {
       // Sync all inputs with currentDesign
-      if (currentDesign.headline) document.getElementById('headline').value = currentDesign.headline;
-      if (currentDesign.companyName) document.getElementById('companyName').value = currentDesign.companyName;
-      if (currentDesign.phone) document.getElementById('phone').value = currentDesign.phone;
-      if (currentDesign.website) document.getElementById('website').value = currentDesign.website;
-      if (currentDesign.primaryColor) document.getElementById('primaryColor').value = currentDesign.primaryColor;
+      const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+      setVal('headline', typeof currentDesign.headline === 'object' ? currentDesign.headline.main : currentDesign.headline);
+      setVal('companyName', currentDesign.companyName);
+      setVal('phone', currentDesign.phone);
+      setVal('website', currentDesign.website);
+      setVal('primaryColor', currentDesign.primaryColor);
     }
 
     // Initialize auto-save on load

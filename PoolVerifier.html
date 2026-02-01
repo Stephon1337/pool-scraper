@@ -637,7 +637,8 @@
         }
 
         // Shared mailed tracker (same as Pool Scraper)
-        let mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}');
+        let mailedTracker = {};
+        try { mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}'); } catch(e) { console.warn('[Verifier] mailed parse:', e.message); }
 
         function getMailedCount(address, city, zip) {
             const key = `${address}|${city}|${zip}`.toUpperCase();
@@ -658,7 +659,7 @@
         function getCampaignInfo(address, city, zip) {
             const now = Date.now();
             if (!cachedCampaigns || now - campaignCacheTime > CAMPAIGN_CACHE_TTL) {
-                cachedCampaigns = JSON.parse(localStorage.getItem('poolscraper_campaigns') || '[]');
+                try { cachedCampaigns = JSON.parse(localStorage.getItem('poolscraper_campaigns') || '[]'); } catch(e) { cachedCampaigns = []; console.warn('[Verifier] campaigns parse:', e.message); }
                 campaignCacheTime = now;
             }
             for (const campaign of cachedCampaigns) {
@@ -715,6 +716,9 @@
         function loadCSV(event) {
             const file = event.target.files[0];
             if (!file) return;
+            const MAX_CSV_SIZE = 10 * 1024 * 1024; // 10MB
+            if (file.size > MAX_CSV_SIZE) { showToast('File too large (max 10MB)', 'error'); event.target.value = ''; return; }
+            if (!file.name.match(/\.(csv|txt|tsv)$/i)) { showToast('Please select a CSV file', 'error'); event.target.value = ''; return; }
 
             const reader = new FileReader();
             reader.onload = function(e) {
@@ -741,7 +745,8 @@
             const mailAddrIdx = headers.findIndex(h => h.includes('mailing address') || h.includes('mail addr') || h.includes('mailingaddress'));
 
             // Load saved verification data
-            const savedData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}');
+            let savedData = {};
+            try { savedData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}'); } catch(e) { console.warn('[Verifier] saved data parse:', e.message); }
 
             addresses = [];
             for (let i = 1; i < lines.length; i++) {
@@ -1255,7 +1260,7 @@
 
         // ============== SKIP TO UNVERIFIED ==============
         function skipToUnverified() {
-            const nextUnreviewed = addresses.findIndex((a, i) => !a.status || a.status === 'unreviewed');
+            const nextUnreviewed = addresses.findIndex(a => !a.status || a.status === 'unreviewed' || a.status === 'pending');
             if (nextUnreviewed !== -1) {
                 selectAddress(nextUnreviewed);
                 showToast(`Jumped to #${nextUnreviewed + 1}`);
