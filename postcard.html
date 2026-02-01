@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pool Service Postcard Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&family=Raleway:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Roboto+Slab:wght@400;500;600;700;800;900&family=Merriweather:wght@400;700;900&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js" integrity="sha384-zESinL+vR3OR5XGFqKjneclbVKOL8SfP+fKKO3K9BHAaPtboci56Vu3g5flevHk9" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src * data: blob:; connect-src *;">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -3288,6 +3289,14 @@
       try { return JSON.parse(str); } catch { return fallback; }
     }
 
+    function safeSetItem(key, value) {
+      try { localStorage.setItem(key, value); }
+      catch (e) {
+        if (e.name === 'QuotaExceededError') showToast('Storage full — data not saved. Clear old data.', 'error');
+        else console.warn('[postcard] Storage write failed:', e.message);
+      }
+    }
+
     function getVal(id, fallback = '') {
       const el = document.getElementById(id);
       return el ? (el.value || el.textContent || fallback) : fallback;
@@ -4591,7 +4600,7 @@
       }
 
       // Save preference
-      localStorage.setItem('postcardSize', size);
+      safeSetItem('postcardSize', size);
     }
 
     function applyContentScale(scale) {
@@ -8612,9 +8621,8 @@
         });
       }
 
-      // Phase 2: WRITE all styles (no reads)
+      // Phase 2: WRITE all styles (no reads) — no overflow:hidden per zero-truncation policy
       document.querySelectorAll('.postcard-front, .postcard-back').forEach(card => {
-        card.style.setProperty('overflow', 'hidden', 'important');
         card.style.setProperty('position', 'relative', 'important');
       });
 
@@ -8627,7 +8635,6 @@
           badge.style.setProperty('max-width', '80px', 'important');
           badge.style.setProperty('max-height', '80px', 'important');
         }
-        badge.style.setProperty('overflow', 'hidden', 'important');
         badge.style.setProperty('box-sizing', 'border-box', 'important');
         badge.style.setProperty('flex-shrink', '0', 'important');
 
@@ -8646,25 +8653,38 @@
 
         for (const el of badge.querySelectorAll('[contenteditable="true"], span, div')) {
           if (!el.style) continue;
-          el.style.cssText += ';white-space:normal!important;word-break:break-word!important;overflow:visible!important;max-width:100%!important;line-height:1.1!important;text-align:center!important;';
+          el.style.setProperty('white-space', 'normal', 'important');
+          el.style.setProperty('word-break', 'break-word', 'important');
+          el.style.setProperty('overflow', 'visible', 'important');
+          el.style.setProperty('max-width', '100%', 'important');
+          el.style.setProperty('line-height', '1.1', 'important');
+          el.style.setProperty('text-align', 'center', 'important');
         }
       }
 
-      // Phase 3: Shrink text that overflows its badge
+      // Phase 3: Shrink text that overflows its badge (batched read-then-write)
       requestAnimationFrame(() => {
         for (const badge of badges) {
           const spans = badge.querySelectorAll('span[contenteditable], div[contenteditable]');
+          // Read pass: collect all measurements
+          const spanData = [];
           for (const span of spans) {
-            let size = parseFloat(getComputedStyle(span).fontSize);
-            const minSize = MIN_FONT_SIZE_PX;
-            while (span.scrollWidth > span.clientWidth + 1 && size > minSize) {
-              size -= 0.5;
-              span.style.fontSize = size + 'px';
-            }
-            while (span.scrollHeight > span.clientHeight + 1 && size > minSize) {
-              size -= 0.5;
-              span.style.fontSize = size + 'px';
-            }
+            spanData.push({
+              span,
+              size: parseFloat(getComputedStyle(span).fontSize),
+              scrollW: span.scrollWidth,
+              clientW: span.clientWidth,
+              scrollH: span.scrollHeight,
+              clientH: span.clientHeight
+            });
+          }
+          // Write pass: apply size changes
+          const minSize = MIN_FONT_SIZE_PX;
+          for (const d of spanData) {
+            let size = d.size;
+            while (d.scrollW > d.clientW + 1 && size > minSize) { size -= 0.5; }
+            while (d.scrollH > d.clientH + 1 && size > minSize) { size -= 0.5; }
+            if (size !== d.size) d.span.style.fontSize = size + 'px';
           }
         }
       });
@@ -9449,7 +9469,7 @@
 
     // Save deleted images to localStorage
     function saveDeletedImages() {
-      localStorage.setItem('deletedPoolImages', JSON.stringify(deletedPoolImages));
+      safeSetItem('deletedPoolImages', JSON.stringify(deletedPoolImages));
     }
 
     // Load deleted images from localStorage
@@ -9867,7 +9887,7 @@
         poolImage: customPoolImage,
         poolImageLocked: locked.poolImage
       };
-      localStorage.setItem('postcardUserInfo', JSON.stringify(data));
+      safeSetItem('postcardUserInfo', JSON.stringify(data));
     }
 
     function loadUserInfo() {
@@ -9881,7 +9901,12 @@
           if (data.cityName) document.getElementById('cityName').value = data.cityName;
           if (data.logoUrl && data.logoUrl !== 'logo.png') {
             currentDesign.logoUrl = data.logoUrl;
-            document.getElementById('logoPreview').innerHTML = '<img src="' + data.logoUrl + '" style="width:100%;height:100%;object-fit:contain;">';
+            const logoImg = document.createElement('img');
+            logoImg.setAttribute('src', sanitizeCSSUrl(data.logoUrl) || '');
+            logoImg.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+            const logoPrev = document.getElementById('logoPreview');
+            logoPrev.textContent = '';
+            logoPrev.appendChild(logoImg);
           }
           if (data.logoSize) {
             currentDesign.logoSize = data.logoSize;
@@ -9895,17 +9920,28 @@
           if (data.qrUrl && data.qrUrl !== 'qrcode.png') {
             currentDesign.qrUrl = data.qrUrl;
             document.getElementById('qrPreviewContainer').style.display = 'block';
-            document.getElementById('qrCodeDisplay').innerHTML = '<img src="' + data.qrUrl + '" style="max-width:80px;max-height:80px;">';
+            const qrImg = document.createElement('img');
+            qrImg.setAttribute('src', sanitizeCSSUrl(data.qrUrl) || '');
+            qrImg.style.cssText = 'max-width:80px;max-height:80px;';
+            const qrDisp = document.getElementById('qrCodeDisplay');
+            qrDisp.textContent = '';
+            qrDisp.appendChild(qrImg);
           }
           if (data.poolImage) {
             customPoolImage = data.poolImage;
             currentDesign.poolImage = data.poolImage;
             locked.poolImage = data.poolImageLocked !== false;
-            document.getElementById('poolPreview').innerHTML = '<img src="' + data.poolImage + '" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">';
+            const poolImg = document.createElement('img');
+            poolImg.setAttribute('src', sanitizeCSSUrl(data.poolImage) || '');
+            poolImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:4px;';
+            const poolPrev = document.getElementById('poolPreview');
+            poolPrev.textContent = '';
+            poolPrev.appendChild(poolImg);
             document.getElementById('poolImageIndex').textContent = 'Custom';
           }
         } catch (e) {
-          // Silent fail - use defaults
+          console.warn('[postcard] Failed to load user info:', e.message);
+          showToast('Some saved settings could not be loaded', 'error');
         }
       }
     }
@@ -9925,7 +9961,7 @@
           services: locked.services
         }
       };
-      localStorage.setItem('postcardTextContent', JSON.stringify(saveData));
+      safeSetItem('postcardTextContent', JSON.stringify(saveData));
     }
 
     function loadTextContent() {
@@ -10651,7 +10687,8 @@
     }
 
     // Favorites System
-    let favorites = JSON.parse(localStorage.getItem('postcardFavorites') || '[]');
+    let favorites = [];
+    try { favorites = JSON.parse(localStorage.getItem('postcardFavorites') || '[]'); if (!Array.isArray(favorites)) favorites = []; } catch (e) { console.warn('[postcard] favorites parse:', e.message); }
 
     // Onboarding banner
     (function() {
@@ -10664,7 +10701,7 @@
       b.style.opacity = '0';
       b.style.transition = 'opacity 0.3s';
       setTimeout(() => b.style.display = 'none', 300);
-      localStorage.setItem('postcardOnboardingSeen', '1');
+      safeSetItem('postcardOnboardingSeen', '1');
     }
 
     // Toolbar More menu
@@ -10693,14 +10730,14 @@
         id: Date.now(),
         name: name,
         layout: currentDesign.layout,
-        theme: {...currentDesign.theme},
-        headline: {...currentDesign.headline},
-        discount: {...currentDesign.discount},
+        theme: JSON.parse(JSON.stringify(currentDesign.theme)),
+        headline: JSON.parse(JSON.stringify(currentDesign.headline)),
+        discount: JSON.parse(JSON.stringify(currentDesign.discount)),
         font: currentDesign.font
       };
 
       favorites.push(favorite);
-      localStorage.setItem('postcardFavorites', JSON.stringify(favorites));
+      safeSetItem('postcardFavorites', JSON.stringify(favorites));
       updateFavoritesCount();
       showToast('Design saved to favorites!');
     }
@@ -10723,7 +10760,7 @@
     function removeFavorite(id, event) {
       event.stopPropagation();
       favorites = favorites.filter(f => f.id !== id);
-      localStorage.setItem('postcardFavorites', JSON.stringify(favorites));
+      safeSetItem('postcardFavorites', JSON.stringify(favorites));
       updateFavoritesCount();
       renderFavoritesList();
     }
@@ -10999,7 +11036,7 @@
     function copyShareUrl() {
       const urlInput = document.getElementById('shareUrlInput');
       urlInput.select();
-      document.execCommand('copy');
+      navigator.clipboard.writeText(urlInput.value).catch(() => { try { document.execCommand('copy'); } catch {} });
 
       const btn = document.getElementById('copyBtn');
       btn.textContent = 'Copied!';
@@ -11182,12 +11219,12 @@
         return;
       }
 
-      const templates = JSON.parse(localStorage.getItem('postcardTemplates') || '{}');
+      const templates = safeJsonParse(localStorage.getItem('postcardTemplates'), {});
       templates[name] = {
         design: JSON.parse(JSON.stringify(currentDesign)),
         saved: new Date().toISOString()
       };
-      localStorage.setItem('postcardTemplates', JSON.stringify(templates));
+      safeSetItem('postcardTemplates', JSON.stringify(templates));
 
       document.getElementById('templateName').value = '';
       renderSavedTemplates();
@@ -11195,7 +11232,7 @@
     }
 
     function loadTemplate(name) {
-      const templates = JSON.parse(localStorage.getItem('postcardTemplates') || '{}');
+      const templates = safeJsonParse(localStorage.getItem('postcardTemplates'), {});
       if (templates[name]) {
         currentDesign = JSON.parse(JSON.stringify(templates[name].design));
         updateColorSwatches();
@@ -11209,16 +11246,16 @@
 
     function deleteTemplate(name) {
       if (confirm('Delete template "' + name + '"?')) {
-        const templates = JSON.parse(localStorage.getItem('postcardTemplates') || '{}');
+        const templates = safeJsonParse(localStorage.getItem('postcardTemplates'), {});
         delete templates[name];
-        localStorage.setItem('postcardTemplates', JSON.stringify(templates));
+        safeSetItem('postcardTemplates', JSON.stringify(templates));
         renderSavedTemplates();
       }
     }
 
     function renderSavedTemplates() {
       const container = document.getElementById('savedTemplatesList');
-      const templates = JSON.parse(localStorage.getItem('postcardTemplates') || '{}');
+      const templates = safeJsonParse(localStorage.getItem('postcardTemplates'), {});
       const names = Object.keys(templates);
 
       if (names.length === 0) {
@@ -11226,12 +11263,23 @@
         return;
       }
 
-      container.innerHTML = names.map(name => `
-        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">
-          <button class="quick-btn" onclick="loadTemplate('${name}')" style="flex:1;padding:4px 8px;font-size:10px;">${name}</button>
-          <button onclick="deleteTemplate('${name}')" style="background:none;border:none;color:var(--danger);cursor:pointer;padding:4px;">&times;</button>
-        </div>
-      `).join('');
+      container.textContent = '';
+      names.forEach(name => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);';
+        const loadBtn = document.createElement('button');
+        loadBtn.className = 'quick-btn';
+        loadBtn.style.cssText = 'flex:1;padding:4px 8px;font-size:10px;';
+        loadBtn.textContent = name;
+        loadBtn.addEventListener('click', () => loadTemplate(name));
+        const delBtn = document.createElement('button');
+        delBtn.style.cssText = 'background:none;border:none;color:var(--danger);cursor:pointer;padding:4px;';
+        delBtn.textContent = '\u00d7';
+        delBtn.addEventListener('click', () => deleteTemplate(name));
+        row.appendChild(loadBtn);
+        row.appendChild(delBtn);
+        container.appendChild(row);
+      });
     }
 
     // PDF Export
@@ -12129,7 +12177,7 @@ Generated with Pool Service Postcard Generator
         created: new Date().toISOString(),
         trackingCode: promoCode
       };
-      localStorage.setItem('postcardCampaigns', JSON.stringify(campaigns));
+      safeSetItem('postcardCampaigns', JSON.stringify(campaigns));
 
       // Create linked tracking campaign in scraper if checkbox is checked
       const alsoTrack = document.getElementById('alsoTrackCampaign');
@@ -12184,7 +12232,7 @@ Generated with Pool Service Postcard Generator
 
     function deleteCampaign(name) {
       delete campaigns[name];
-      localStorage.setItem('postcardCampaigns', JSON.stringify(campaigns));
+      safeSetItem('postcardCampaigns', JSON.stringify(campaigns));
       renderCampaignsList();
     }
 
@@ -12594,7 +12642,7 @@ Generated with Pool Service Postcard Generator
           design: currentDesign,
           timestamp: new Date().toISOString()
         };
-        localStorage.setItem('postcardAutoSave', JSON.stringify(backup));
+        safeSetItem('postcardAutoSave', JSON.stringify(backup));
 
         // Update status
         const status = document.getElementById('autoSaveStatus');

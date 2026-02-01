@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AquaDesk - Verifier</title>
+    <title>AquaDesk - Identifier</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         /* Hide duplicate nav when inside AquaDesk dashboard iframe */
@@ -144,6 +144,22 @@
 
         input[type="file"] { display: none; }
 
+        /* Export dropdown */
+        .export-dropdown-wrap { position: relative; }
+        .export-dropdown-menu {
+            position: absolute; top: 100%; right: 0;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+            min-width: 200px; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: none; padding: 6px 0;
+        }
+        .export-dropdown-menu.show { display: block; }
+        .export-dropdown-menu button {
+            display: flex; align-items: center; gap: 8px; width: 100%;
+            padding: 10px 16px; background: none; border: none;
+            color: var(--text); font-size: 12px; cursor: pointer; text-align: left;
+        }
+        .export-dropdown-menu button:hover { background: var(--bg-hover); }
+
         /* Progress Bar */
         .progress-bar-container { padding: 8px 12px; border-bottom: 1px solid var(--border); }
         .progress-bar-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
@@ -152,7 +168,7 @@
 
         /* Bulk Select */
         .bulk-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
-        .bulk-action-bar { padding: 8px 12px; background: var(--accent); color: #000; display: none; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; }
+        .bulk-action-bar { padding: 8px 12px; background: var(--accent); color: #000; display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; }
         .bulk-action-bar.show { display: flex; }
         .bulk-action-bar button { background: rgba(0,0,0,0.2); border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; color: #000; font-weight: 600; }
         .bulk-action-bar button:hover { background: rgba(0,0,0,0.3); }
@@ -166,18 +182,24 @@
 <body>
     <script>if(window.self!==window.top)document.documentElement.classList.add('in-iframe');</script>
     <div class="header">
-        <div class="logo">💧 Aqua<span>Desk</span></div>
+        <div class="logo">💧 AquaDesk</div>
         <div class="nav-tabs">
             <a href="pool-scraper.html" class="nav-tab">📋 Scraper</a>
-            <a href="#" class="nav-tab active">🔍 Verifier</a>
+            <a href="#" class="nav-tab active">🔍 Identifier</a>
             <a href="postcard.html" class="nav-tab">🎨 Postcard</a>
         </div>
         <div class="header-controls">
             <button class="btn btn-secondary" onclick="openAddModal()">➕ Add</button>
             <button class="btn btn-primary" onclick="loadFromScraper()">📥 Load from Scraper</button>
-            <button class="btn btn-secondary" onclick="showImportModal()">📥 Import CSV</button>
-            <button class="btn btn-primary" onclick="exportVerified()">📤 Export</button>
-            <button class="btn btn-secondary" onclick="sortByRoute(); openGoogleMapsRoute();">🗺️ Route</button>
+            <div class="export-dropdown-wrap">
+                <button class="btn btn-primary" onclick="toggleExportMenu()">📤 Export ▾</button>
+                <div class="export-dropdown-menu" id="exportDropdownMenu">
+                    <button onclick="exportVerified(); closeExportMenu();">📤 Export Verified CSV</button>
+                    <button onclick="quickVistaPrint(); closeExportMenu();" style="color:var(--green); font-weight:700;">⚡ VistaPrint</button>
+                    <button onclick="showImportModal(); closeExportMenu();">📥 Import CSV</button>
+                    <button onclick="sortByRoute(); openGoogleMapsRoute(); closeExportMenu();">🗺️ Route</button>
+                </div>
+            </div>
             <button class="btn btn-secondary" style="color:var(--red);" onclick="clearAllData()">🗑️</button>
             <button class="btn btn-secondary" onclick="showHelp()">❓</button>
         </div>
@@ -366,7 +388,7 @@
                     <input type="checkbox" id="expCompany" checked> 2. Company
                 </label>
                 <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
-                    <input type="checkbox" id="expAddress" checked> 3. Address
+                    <input type="checkbox" id="expAddress" checked> 3. Address <span style="font-size:9px; color:var(--text-dim);">(auto: mail if diff, prop if same)</span>
                 </label>
                 <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
                     <input type="checkbox" id="expCity" checked> 4. City
@@ -401,6 +423,15 @@
                 <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
                     <input type="checkbox" id="expSaleDate"> Sale Date
                 </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                    <input type="checkbox" id="expPropertyAddress"> Property Address
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                    <input type="checkbox" id="expMailingAddress"> Mailing Address
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:13px;">
+                    <input type="checkbox" id="expAddressSource"> Address Source (Prop/Mail)
+                </label>
             </div>
             <div style="margin-top:16px;">
                 <label style="font-size:11px; color:var(--text-dim);">Export which addresses:</label>
@@ -414,6 +445,18 @@
                 <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
                     <input type="checkbox" id="expRouteFormat"> Export as Route CSV (for GPS/mapping)
                 </label>
+            </div>
+            <div style="margin-top:12px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                    <input type="checkbox" id="expPerSubdiv" onchange="togglePerSubdiv()"> Export each subdivision as separate file
+                </label>
+            </div>
+            <div id="perSubdivPreview" style="display:none; margin-top:8px; padding:8px; background:var(--surface); border-radius:6px; border:1px solid var(--border); max-height:120px; overflow-y:auto;">
+            </div>
+            <div id="singleFileNameWrap" style="margin-top:12px;">
+                <label style="font-size:11px; color:var(--text-dim);">File name:</label>
+                <input type="text" id="expFileName" placeholder="e.g. River_Walk_Verified" style="width:100%; margin-top:4px; padding:8px; border:1px solid var(--border); border-radius:4px; background:var(--bg); color:var(--text); font-size:13px;">
+                <span style="font-size:10px; color:var(--text-dim);">.csv will be added automatically</span>
             </div>
             <div id="exportCount" style="margin-top:12px; font-size:12px; color:var(--accent);"></div>
             <div class="modal-actions">
@@ -444,13 +487,13 @@
     <div class="modal" id="helpModal">
         <div class="modal-content" style="width:600px; max-height:85vh; overflow-y:auto;">
             <div class="modal-header">
-                <h3>❓ Pool Verifier Pro Help</h3>
+                <h3>❓ Pool Identifier Pro Help</h3>
                 <button class="modal-close" onclick="closeHelp()">&times;</button>
             </div>
             <div style="font-size:12px; line-height:1.6;">
                 <h4 style="color:var(--accent); margin:16px 0 8px; font-size:14px;">🎯 Purpose</h4>
                 <p style="color:var(--text-dim); margin-bottom:12px;">
-                    Pool Verifier Pro lets you visually confirm whether properties have pools using Google Maps satellite imagery.
+                    Pool Identifier Pro lets you visually confirm whether properties have pools using Google Maps satellite imagery.
                     This eliminates wasted postcards sent to homes without pools.
                 </p>
 
@@ -504,7 +547,7 @@
 
                 <h4 style="color:var(--accent); margin:16px 0 8px; font-size:14px;">🔗 Integration with Pool Scraper</h4>
                 <ul style="color:var(--text-dim); margin-left:20px; margin-bottom:12px;">
-                    <li><strong>Import:</strong> Use "Load from Scraper" after clicking "Sync to Verifier" in Pool Scraper</li>
+                    <li><strong>Import:</strong> Use "Load from Scraper" after clicking "Sync to Identifier" in Pool Scraper</li>
                     <li><strong>No-Pool Sync:</strong> Addresses marked ❌ No Pool are automatically excluded from Pool Scraper exports when "Exclude No Pool" is checked</li>
                     <li>Both tools share verification status via browser storage</li>
                 </ul>
@@ -545,20 +588,39 @@
     <div class="toast" id="toast"></div>
 
     <script>
+        // Constants
+        const STATUS = Object.freeze({ VERIFIED: 'verified', NO_POOL: 'no-pool', PENDING: 'pending' });
+        const MAX_ROUTE_STOPS = 10;
+
         // State
         let addresses = [];
         let currentIndex = -1;
-        // API key loaded at runtime via prompt — never hardcoded
-        let GMAP_TOKEN = sessionStorage.getItem('gmap_token') || '';
+        // API key persisted in localStorage — never hardcoded
+        let GMAP_TOKEN = localStorage.getItem('gmap_token') || '';
         function promptMapToken() {
             if (!GMAP_TOKEN) {
                 const key = prompt('Enter your Google Maps API key:');
                 if (key && key.trim()) {
-                    GMAP_TOKEN = key.trim();
-                    sessionStorage.setItem('gmap_token', GMAP_TOKEN);
+                    const trimmed = key.trim();
+                    if (!/^[A-Za-z0-9_-]{20,60}$/.test(trimmed)) {
+                        showToast('Invalid API key format', 'error');
+                        return false;
+                    }
+                    GMAP_TOKEN = trimmed;
+                    localStorage.setItem('gmap_token', GMAP_TOKEN);
                 }
             }
             return !!GMAP_TOKEN;
+        }
+
+        // Resolve which address to use for mailing: mailing if different, property if same/blank
+        function resolveMailAddress(a) {
+            const prop = (a.propertyAddress || '').trim();
+            const mail = (a.mailingAddress || '').trim();
+            if (!mail || mail.toUpperCase().replace(/[^A-Z0-9]/g, '') === prop.toUpperCase().replace(/[^A-Z0-9]/g, '')) {
+                return { address: prop || a.address, source: 'Property' };
+            }
+            return { address: mail, source: 'Mailing' };
         }
 
         // Bulk selection state
@@ -635,9 +697,13 @@
         function openInGoogleMaps() {
             if (currentIndex >= 0 && addresses[currentIndex]) {
                 const addr = addresses[currentIndex];
-                window.open(`https://www.google.com/maps/search/${encodeURIComponent(addr.fullAddress)}/@28.5,-81.4,500m/data=!3m1!1e3`, '_blank', 'noopener,noreferrer');
+                window.open(`https://www.google.com/maps/search/${encodeURIComponent(addr.fullAddress)}/@${addr.fullAddress ? '' : '28.5,-81.4,'}500m/data=!3m1!1e3`, '_blank', 'noopener,noreferrer');
             } else {
-                window.open('https://www.google.com/maps/@28.5,-81.4,5000m/data=!3m1!1e3', '_blank', 'noopener,noreferrer');
+                // Use first loaded address as fallback center, default to Orlando if no data
+                const fallback = addresses.length > 0 && addresses[0].fullAddress
+                    ? `search/${encodeURIComponent(addresses[0].fullAddress)}`
+                    : '@28.5,-81.4,5000m';
+                window.open(`https://www.google.com/maps/${fallback}/data=!3m1!1e3`, '_blank', 'noopener,noreferrer');
             }
         }
 
@@ -667,6 +733,8 @@
             const valueIdx = headers.findIndex(h => h.includes('value') && !h.includes('assessed'));
             const yearIdx = headers.findIndex(h => h.includes('year'));
             const ageIdx = headers.findIndex(h => h.includes('age'));
+            const propAddrIdx = headers.findIndex(h => h.includes('property address') || h.includes('prop addr') || h.includes('propertyaddress'));
+            const mailAddrIdx = headers.findIndex(h => h.includes('mailing address') || h.includes('mail addr') || h.includes('mailingaddress'));
 
             // Load saved verification data
             const savedData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}');
@@ -686,6 +754,8 @@
                     value: cols[valueIdx] || '',
                     year: cols[yearIdx] || '',
                     age: cols[ageIdx] || '',
+                    propertyAddress: propAddrIdx >= 0 ? (cols[propAddrIdx] || '') : '',
+                    mailingAddress: mailAddrIdx >= 0 ? (cols[mailAddrIdx] || '') : '',
                     status: 'unreviewed',
                     verifiedAt: null
                 };
@@ -695,8 +765,8 @@
 
                 // Restore saved status
                 if (savedData[addr.key]) {
-                    addr.status = savedData[addr.key].status;
-                    addr.verifiedAt = savedData[addr.key].verifiedAt;
+                    addr.status = savedData[addr.key].status ?? 'unreviewed';
+                    addr.verifiedAt = savedData[addr.key].verifiedAt ?? null;
                 }
 
                 addresses.push(addr);
@@ -710,7 +780,7 @@
                 if (mailedTracker[mailKey]) {
                     mailedCount++;
                 }
-                if (a.status === 'verified' || a.status === 'no-pool') {
+                if (a.status === STATUS.VERIFIED || a.status === STATUS.NO_POOL) {
                     verifiedCount++;
                 }
             });
@@ -758,7 +828,11 @@
         }
 
         // Render address list
+        let _saveTimer = null;
         function renderList() {
+            // Auto-save session (debounced)
+            clearTimeout(_saveTimer);
+            _saveTimer = setTimeout(saveVerifierSession, 1000);
             const filter = document.getElementById('statusFilter').value;
             const subdivFilter = document.getElementById('subdivisionFilter')?.value || 'all';
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -789,7 +863,7 @@
             }
 
             list.innerHTML = filtered.map(({ addr: a, idx }) => {
-                const statusIcon = a.status === 'verified' ? '✅' : a.status === 'no-pool' ? '❌' : a.status === 'pending' ? '⏳' : '⬜';
+                const statusIcon = a.status === STATUS.VERIFIED ? '✅' : a.status === STATUS.NO_POOL ? '❌' : a.status === STATUS.PENDING ? '⏳' : '⬜';
                 const mailCount = getMailedCount(a.address, a.city, a.zip);
                 const mailBadge = mailCount > 0 ? `<span style="font-size:10px; color:var(--cyan); margin-left:4px;">📬${mailCount}x</span>` : '';
                 const isSelected = selectedIndices.has(idx);
@@ -799,7 +873,7 @@
                         <div class="addr-num">#${idx + 1}</div>
                         <div class="addr-info">
                             <div class="addr-name">${escapeHtml(a.name)}${mailBadge}</div>
-                            <div class="addr-street">${escapeHtml(a.address)}</div>
+                            <div class="addr-street">${escapeHtml(a.address)}${(a.propertyAddress || a.mailingAddress) ? ` <span style="font-size:9px; padding:1px 4px; border-radius:3px; background:${resolveMailAddress(a).source === 'Mailing' ? 'var(--orange)' : 'var(--cyan)'}; color:#000; font-weight:600;">${resolveMailAddress(a).source === 'Mailing' ? '✉ Mail' : '🏠 Prop'}</span>` : ''}</div>
                             <div class="addr-city">${escapeHtml(a.city)}, ${escapeHtml(a.state)} ${escapeHtml(a.zip)}${a.subdivision ? ` <span style="color:var(--cyan);font-size:10px;">• ${escapeHtml(a.subdivision)}</span>` : ''}</div>
                         </div>
                         <div class="addr-status">${statusIcon}</div>
@@ -824,11 +898,14 @@
             document.getElementById('currentName').textContent = addr.name;
             document.getElementById('currentAddress').textContent = addr.fullAddress;
 
-            const statusIcon = addr.status === 'verified' ? '✅' : addr.status === 'no-pool' ? '❌' : addr.status === 'pending' ? '⏳' : '⬜';
+            const statusIcon = addr.status === STATUS.VERIFIED ? '✅' : addr.status === STATUS.NO_POOL ? '❌' : addr.status === STATUS.PENDING ? '⏳' : '⬜';
             document.getElementById('currentStatus').textContent = statusIcon;
 
             // Show details
             let details = '';
+            const resolved = resolveMailAddress(addr);
+            if (addr.propertyAddress) details += `<div class="detail-item"><div class="detail-label">🏠 Property</div><div class="detail-value" style="color:${resolved.source === 'Property' ? 'var(--cyan)' : 'var(--text-dim)'};${resolved.source === 'Property' ? 'font-weight:bold;' : ''}">${escapeHtml(addr.propertyAddress)}${resolved.source === 'Property' ? ' ← export' : ''}</div></div>`;
+            if (addr.mailingAddress) details += `<div class="detail-item"><div class="detail-label">✉ Mailing</div><div class="detail-value" style="color:${resolved.source === 'Mailing' ? 'var(--orange)' : 'var(--text-dim)'};${resolved.source === 'Mailing' ? 'font-weight:bold;' : ''}">${escapeHtml(addr.mailingAddress)}${resolved.source === 'Mailing' ? ' ← export' : ''}</div></div>`;
             if (addr.value) details += `<div class="detail-item"><div class="detail-label">Value</div><div class="detail-value">${addr.value}</div></div>`;
             if (addr.year) details += `<div class="detail-item"><div class="detail-label">Year Built</div><div class="detail-value">${addr.year}</div></div>`;
             if (addr.age) details += `<div class="detail-item"><div class="detail-label">Pool Age</div><div class="detail-value">${addr.age}y</div></div>`;
@@ -869,8 +946,8 @@
             renderList();
             selectAddress(currentIndex);
 
-            const msg = status === 'verified' ? '✅ Marked as HAS POOL' : status === 'no-pool' ? '❌ Marked as NO POOL' : '⏳ Marked as PENDING';
-            showToast(msg, status === 'verified' ? 'success' : '');
+            const msg = status === STATUS.VERIFIED ? '✅ Marked as HAS POOL' : status === STATUS.NO_POOL ? '❌ Marked as NO POOL' : '⏳ Marked as PENDING';
+            showToast(msg, status === STATUS.VERIFIED ? 'success' : '');
 
             // Auto-advance to next unreviewed
             const nextUnreviewed = addresses.findIndex((a, i) => i > currentIndex && a.status === 'unreviewed');
@@ -910,9 +987,9 @@
         // Stats
         function updateStats() {
             const total = addresses.length;
-            const verified = addresses.filter(a => a.status === 'verified').length;
-            const noPool = addresses.filter(a => a.status === 'no-pool').length;
-            const pending = addresses.filter(a => a.status === 'pending').length;
+            const verified = addresses.filter(a => a.status === STATUS.VERIFIED).length;
+            const noPool = addresses.filter(a => a.status === STATUS.NO_POOL).length;
+            const pending = addresses.filter(a => a.status === STATUS.PENDING).length;
             const mailed = addresses.filter(a => getMailedCount(a.address, a.city, a.zip) > 0).length;
 
             document.getElementById('statTotal').textContent = total;
@@ -942,22 +1019,81 @@
             try {
                 localStorage.setItem('poolVerifierData', JSON.stringify(data));
             } catch (e) {
-                // Silently fail if localStorage is unavailable
+                if (e.name === 'QuotaExceededError') showToast('Storage full — verification data not saved. Clear old data.', 'error');
+                else console.warn('[verifier] saveData failed:', e.message);
             }
         }
 
         // Auto-load from Scraper session on page load
         function loadSavedAddresses() {
-            // Prefer filtered data (from "Send to Verifier"), fall back to full session
-            if (localStorage.getItem('poolscraper_filtered') || localStorage.getItem('poolscraper_session')) {
+            // Check if verifier already has a working set saved
+            const savedSession = localStorage.getItem('poolVerifier_session');
+            if (savedSession) {
+                try {
+                    const session = JSON.parse(savedSession);
+                    if (Array.isArray(session.addresses) && session.addresses.length > 0 && session.addresses.length <= 50000) {
+                        addresses = session.addresses;
+                        document.getElementById('emptyMap').style.display = 'none';
+                        document.getElementById('currentPanel').style.display = 'block';
+                        document.getElementById('actionPanel').style.display = 'flex';
+                        renderList();
+                        updateStats();
+                        populateSubdivisionFilter();
+                        if (addresses.length > 0) selectAddress(0);
+                        showToast(`Restored ${addresses.length} addresses from last session`);
+                        // Check if scraper has newer data
+                        const scraperData = localStorage.getItem('poolscraper_transfer');
+                        if (scraperData) {
+                            const scraper = JSON.parse(scraperData);
+                            if (scraper.timestamp > (session.timestamp || '')) {
+                                showToast('New data available from Scraper — click "Load from Scraper" to update', 'info');
+                            }
+                        }
+                        return true;
+                    }
+                } catch (e) { console.warn('[verifier] session parse:', e.message); }
+            }
+            // No saved session — only load explicitly sent data
+            if (localStorage.getItem('poolscraper_transfer') || localStorage.getItem('poolscraper_filtered')) {
                 loadFromScraper();
                 return true;
             }
             return false;
         }
 
+        // Save verifier working session
+        function saveVerifierSession() {
+            if (addresses.length === 0) return; // Never overwrite with empty data
+            try {
+                localStorage.setItem('poolVerifier_session', JSON.stringify({
+                    addresses: addresses,
+                    timestamp: new Date().toISOString()
+                }));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') showToast('Storage full — session not saved', 'error');
+                else console.warn('[verifier] session save:', e.message);
+            }
+        }
+
         // Init on page load
         document.addEventListener('DOMContentLoaded', loadSavedAddresses);
+
+        // Detect when Scraper writes new data (critical for iframe dashboard)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'poolscraper_transfer' && e.newValue) {
+                showToast('New data from Scraper — click "Load from Scraper" to update');
+            }
+            // Sync mailedTracker across tabs (prevents phantom state)
+            if (e.key === 'poolscraper_mailed_v2' && e.newValue) {
+                try { mailedTracker = JSON.parse(e.newValue); } catch (err) { console.warn('[verifier] mailed sync:', err.message); }
+            }
+        });
+
+        // Save session on tab switch / page close
+        window.addEventListener('beforeunload', saveVerifierSession);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) saveVerifierSession();
+        });
 
         // Mark current address as mailed (shared with Scraper)
         function markAsMailed() {
@@ -967,6 +1103,9 @@
             const key = `${addr.address}|${addr.city}|${addr.zip}`.toUpperCase();
             const today = new Date().toISOString().slice(0, 10);
 
+            // Re-read from localStorage to prevent race condition with other tabs
+            try { mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}'); } catch (_) {}
+
             if (mailedTracker[key]) {
                 mailedTracker[key].count++;
                 mailedTracker[key].lastMailed = today;
@@ -974,7 +1113,11 @@
                 mailedTracker[key] = { count: 1, firstMailed: today, lastMailed: today };
             }
 
-            localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+            try {
+                localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') showToast('Storage full — mailed status not saved', 'error');
+            }
             updateStats();
             renderList();
             selectAddress(currentIndex); // Refresh details
@@ -1041,6 +1184,9 @@
             const today = new Date().toISOString().slice(0, 10);
             let count = 0;
 
+            // Re-read to prevent race condition with other tabs
+            try { mailedTracker = JSON.parse(localStorage.getItem('poolscraper_mailed_v2') || '{}'); } catch (_) {}
+
             selectedIndices.forEach(idx => {
                 const addr = addresses[idx];
                 const key = `${addr.address}|${addr.city}|${addr.zip}`.toUpperCase();
@@ -1053,7 +1199,11 @@
                 count++;
             });
 
-            localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+            try {
+                localStorage.setItem('poolscraper_mailed_v2', JSON.stringify(mailedTracker));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') showToast('Storage full — mailed status not saved', 'error');
+            }
             updateStats();
             clearBulkSelection();
             showToast(`📬 ${count} addresses marked as mailed`, 'success');
@@ -1122,9 +1272,21 @@
                 showToast('Street address is required', 'error');
                 return;
             }
+            if (!city) {
+                showToast('City is required', 'error');
+                return;
+            }
+            if (state.length !== 2 || !/^[A-Z]{2}$/i.test(state)) {
+                showToast('State must be a 2-letter abbreviation', 'error');
+                return;
+            }
+            if (zip && !/^\d{5}(-\d{4})?$/.test(zip)) {
+                showToast('ZIP must be 5 or 9 digits (e.g. 32801 or 32801-1234)', 'error');
+                return;
+            }
 
             const addr = {
-                id: addresses.length + 1,
+                id: Date.now(),
                 name: name,
                 address: street,
                 city: city,
@@ -1161,6 +1323,18 @@
             document.getElementById('importModal').classList.remove('show');
         }
 
+        // Export dropdown
+        function toggleExportMenu() {
+            document.getElementById('exportDropdownMenu').classList.toggle('show');
+        }
+        function closeExportMenu() {
+            document.getElementById('exportDropdownMenu').classList.remove('show');
+        }
+        document.addEventListener('click', function(e) {
+            const wrap = document.querySelector('.export-dropdown-wrap');
+            if (wrap && !wrap.contains(e.target)) closeExportMenu();
+        });
+
         function showHelp() {
             document.getElementById('helpModal').classList.add('show');
         }
@@ -1170,38 +1344,31 @@
         }
 
         function loadFromScraper() {
-            // Try filtered data first (from "Send to Verifier" button), then fall back to full session
-            let sessionData = localStorage.getItem('poolscraper_filtered');
-            let isFiltered = true;
+            let rawData = [];
 
-            if (!sessionData) {
-                sessionData = localStorage.getItem('poolscraper_session');
-                isFiltered = false;
+            // Primary: atomic transfer key (v2)
+            const transfer = localStorage.getItem('poolscraper_transfer');
+            if (transfer) {
+                try {
+                    const payload = JSON.parse(transfer);
+                    rawData = payload.results || [];
+                } catch (e) { console.warn('[verifier] transfer parse:', e.message); }
             }
 
-            if (!sessionData) {
-                showToast('No Scraper data found. Process data in Pool Scraper first.', 'error');
-                return;
-            }
-
-            let session;
-            try {
-                session = JSON.parse(sessionData);
-            } catch (e) {
-                showToast('Could not parse Scraper data', 'error');
-                return;
-            }
-
-            const rawData = session.results || [];
+            // Fallback: legacy key (one-time backward compat)
             if (rawData.length === 0) {
-                showToast('Scraper data is empty', 'error');
+                try {
+                    const legacy = JSON.parse(localStorage.getItem('poolscraper_filtered') || 'null');
+                    if (legacy && Array.isArray(legacy.results)) rawData = legacy.results;
+                } catch (e) { console.warn('[verifier] legacy parse:', e.message); }
+            }
+
+            if (rawData.length === 0) {
+                showToast('No data sent from Scraper. Use "Send to Identifier" in Pool Scraper first.', 'error');
                 return;
             }
 
-            // Keep filtered data so re-syncs get the same updated list.
-            // Scraper overwrites this key each time "Send to Verifier" is clicked.
-
-            // Map from Scraper format to Verifier format
+            // Map from Scraper format to Identifier format
             const data = rawData.map(r => ({
                 name: r.recipient || 'Current Resident',
                 address: r.address || '',
@@ -1212,13 +1379,15 @@
                 value: r.propertyValue || '',
                 year: r.yearBuilt || '',
                 age: r.poolAge || '',
-                saleDate: r.saleDate || ''
+                saleDate: r.saleDate || '',
+                propertyAddress: r.propertyAddress || '',
+                mailingAddress: r.mailingAddress || ''
             }));
 
-            // Load saved verification status (small data - just status per address)
+            // Load saved verification status
             const savedData = JSON.parse(localStorage.getItem('poolVerifierData') || '{}');
 
-            addresses = data.map((d, i) => {
+            const incoming = data.map((d, i) => {
                 const addr = {
                     id: i + 1,
                     name: d.name || 'Current Resident',
@@ -1231,6 +1400,8 @@
                     year: d.year || '',
                     age: d.age || '',
                     saleDate: d.saleDate || '',
+                    propertyAddress: d.propertyAddress || '',
+                    mailingAddress: d.mailingAddress || '',
                     status: 'unreviewed',
                     verifiedAt: null
                 };
@@ -1239,12 +1410,22 @@
 
                 // Restore saved status
                 if (savedData[addr.key]) {
-                    addr.status = savedData[addr.key].status;
-                    addr.verifiedAt = savedData[addr.key].verifiedAt;
+                    addr.status = savedData[addr.key].status ?? 'unreviewed';
+                    addr.verifiedAt = savedData[addr.key].verifiedAt ?? null;
                 }
 
                 return addr;
             });
+
+            // Replace addresses with fresh scraper data
+            addresses = incoming;
+
+            // Persist immediately before clearing transfer keys
+            saveVerifierSession();
+
+            // Clear consumed transfer key — verifier session is now source of truth
+            localStorage.removeItem('poolscraper_transfer');
+            localStorage.removeItem('poolscraper_filtered'); // legacy cleanup
 
             document.getElementById('emptyMap').style.display = 'none';
             document.getElementById('currentPanel').style.display = 'block';
@@ -1261,7 +1442,7 @@
             populateSubdivisionFilter();
 
             const subdivs = [...new Set(addresses.map(a => a.subdivision).filter(s => s))];
-            const sourceLabel = isFiltered ? 'filtered' : 'all';
+            const sourceLabel = transfer ? 'filtered' : 'all';
             showToast(`Loaded ${addresses.length} ${sourceLabel} addresses (${subdivs.length} subdivisions)`, 'success');
         }
 
@@ -1272,6 +1453,17 @@
                 return;
             }
             updateExportCount();
+            // Pre-fill filename with top subdivision
+            const subdivCounts = {};
+            addresses.forEach(a => {
+                const s = (a.subdivision || '').trim();
+                if (s) subdivCounts[s] = (subdivCounts[s] || 0) + 1;
+            });
+            const topSubdiv = Object.entries(subdivCounts).sort((a, b) => b[1] - a[1])[0];
+            const nameField = document.getElementById('expFileName');
+            if (!nameField.value && topSubdiv) {
+                nameField.value = topSubdiv[0].replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10);
+            }
             document.getElementById('exportModal').classList.add('show');
         }
 
@@ -1279,88 +1471,318 @@
             document.getElementById('exportModal').classList.remove('show');
         }
 
+        // One-click VistaPrint export — verified addresses only, 6 columns
+        function quickVistaPrint() {
+            const verified = addresses.filter(a => a.status === STATUS.VERIFIED);
+            if (verified.length === 0) {
+                showToast('No verified addresses to export', 'error');
+                return;
+            }
+
+            const headers = ['Recipient', 'Company', 'Address', 'City', 'State', 'Zipcode'];
+            const rows = verified.map(a => {
+                const resolved = resolveMailAddress(a);
+                return [
+                    `"${csvSafe(a.name || 'Current Resident')}"`,
+                    `"${csvSafe(a.company || '')}"`,
+                    `"${csvSafe(resolved.address || a.address || '')}"`,
+                    `"${csvSafe(a.city || '')}"`,
+                    `"${csvSafe(a.state || '')}"`,
+                    `"${csvSafe(a.zip || '')}"`
+                ].join(',');
+            });
+            const csv = [headers.join(','), ...rows].join('\n');
+
+            const subdivCounts = {};
+            verified.forEach(a => {
+                const s = (a.subdivision || '').trim();
+                if (s) subdivCounts[s] = (subdivCounts[s] || 0) + 1;
+            });
+            const topSubdiv = Object.entries(subdivCounts).sort((a, b) => b[1] - a[1])[0];
+            const subdivName = topSubdiv ? topSubdiv[0].replace(/\s+/g, '_') : 'Verified';
+            const date = new Date().toISOString().slice(0, 10);
+            const fileName = `VistaPrint_${subdivName}_${verified.length}_${date}.csv`;
+
+            downloadFile(csv, fileName);
+            showToast(`Exported ${verified.length} verified addresses → ${fileName}`, 'success');
+        }
+
         function updateExportCount() {
             const filter = document.getElementById('exportFilter').value;
             let count = 0;
-            if (filter === 'verified') count = addresses.filter(a => a.status === 'verified').length;
-            else if (filter === 'all-reviewed') count = addresses.filter(a => a.status === 'verified' || a.status === 'no-pool').length;
+            if (filter === 'verified') count = addresses.filter(a => a.status === STATUS.VERIFIED).length;
+            else if (filter === 'all-reviewed') count = addresses.filter(a => a.status === STATUS.VERIFIED || a.status === STATUS.NO_POOL).length;
             else count = addresses.length;
             document.getElementById('exportCount').textContent = `${count} addresses will be exported`;
         }
 
-        function doExport() {
+        function togglePerSubdiv() {
+            const checked = document.getElementById('expPerSubdiv').checked;
+            document.getElementById('singleFileNameWrap').style.display = checked ? 'none' : 'block';
+            const preview = document.getElementById('perSubdivPreview');
+            if (!checked) { preview.style.display = 'none'; return; }
+
+            // Show subdivision breakdown
             const filter = document.getElementById('exportFilter').value;
-            const isRouteFormat = document.getElementById('expRouteFormat')?.checked;
-            let toExport = [];
-            if (filter === 'verified') toExport = addresses.filter(a => a.status === 'verified');
-            else if (filter === 'all-reviewed') toExport = addresses.filter(a => a.status === 'verified' || a.status === 'no-pool');
-            else toExport = addresses;
+            let pool = [];
+            if (filter === 'verified') pool = addresses.filter(a => a.status === STATUS.VERIFIED);
+            else if (filter === 'all-reviewed') pool = addresses.filter(a => a.status === STATUS.VERIFIED || a.status === STATUS.NO_POOL);
+            else pool = addresses;
 
-            if (toExport.length === 0) {
-                showToast('No addresses match the filter', 'error');
-                return;
-            }
+            const counts = {};
+            pool.forEach(a => {
+                const s = (a.subdivision || '').trim() || 'No Subdivision';
+                counts[s] = (counts[s] || 0) + 1;
+            });
 
-            // Route format: sort by zip/city/street and add stop numbers
-            if (isRouteFormat) {
-                toExport = [...toExport].sort((a, b) => {
-                    const zipA = (a.zip || '').substring(0, 5);
-                    const zipB = (b.zip || '').substring(0, 5);
-                    if (zipA !== zipB) return zipA.localeCompare(zipB);
-                    if (a.city !== b.city) return (a.city || '').localeCompare(b.city || '');
-                    const streetA = (a.address || '').replace(/^\d+\s*/, '');
-                    const streetB = (b.address || '').replace(/^\d+\s*/, '');
-                    if (streetA !== streetB) return streetA.localeCompare(streetB);
-                    const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0');
-                    const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
-                    return numA - numB;
-                });
-            }
+            const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+            preview.innerHTML = sorted.map(([name, count]) =>
+                `<div style="display:flex; justify-content:space-between; padding:3px 0; font-size:12px; border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text);">${escapeHtml(name)}</span>
+                    <span style="color:var(--accent); font-weight:600;">${count} leads</span>
+                </div>`
+            ).join('');
+            preview.style.display = 'block';
+        }
 
-            // Build header based on selected columns - FIXED ORDER: Recipient, Company, Address, City, State, Zipcode first
+        function getExportColumns(isRouteFormat) {
             const cols = [];
-            // Add stop number for route format
             if (isRouteFormat) cols.push({ key: 'stop', header: 'Stop #' });
-            // Core columns in fixed order
             if (document.getElementById('expRecipient').checked) cols.push({ key: 'name', header: 'Recipient' });
             if (document.getElementById('expCompany').checked) cols.push({ key: 'company', header: 'Company' });
             if (document.getElementById('expAddress').checked) cols.push({ key: 'address', header: 'Address' });
             if (document.getElementById('expCity').checked) cols.push({ key: 'city', header: 'City' });
             if (document.getElementById('expState').checked) cols.push({ key: 'state', header: 'State' });
             if (document.getElementById('expZip').checked) cols.push({ key: 'zip', header: 'Zipcode' });
-            // Additional columns
             if (document.getElementById('expSubdivision')?.checked) cols.push({ key: 'subdivision', header: 'Subdivision' });
             if (document.getElementById('expValue').checked) cols.push({ key: 'value', header: 'PropertyValue' });
             if (document.getElementById('expYear').checked) cols.push({ key: 'year', header: 'YearBuilt' });
             if (document.getElementById('expAge').checked) cols.push({ key: 'age', header: 'PoolAge' });
             if (document.getElementById('expStatus')?.checked) cols.push({ key: 'status', header: 'Status' });
             if (document.getElementById('expSaleDate')?.checked) cols.push({ key: 'saleDate', header: 'SaleDate' });
+            if (document.getElementById('expPropertyAddress')?.checked) cols.push({ key: 'propertyAddress', header: 'PropertyAddress' });
+            if (document.getElementById('expMailingAddress')?.checked) cols.push({ key: 'mailingAddress', header: 'MailingAddress' });
+            if (document.getElementById('expAddressSource')?.checked) cols.push({ key: 'addressSource', header: 'AddressSource' });
             if (document.getElementById('expVerifiedAt').checked) cols.push({ key: 'verifiedAt', header: 'VerifiedDate' });
+            return cols;
+        }
 
+        // Prevent CSV injection: prefix formula-triggering characters with a single quote
+        function csvSafe(val) {
+            const s = String(val).replace(/"/g, '""');
+            if (/^[=+\-@\t\r]/.test(s)) return "'" + s;
+            return s;
+        }
+
+        function buildCSV(records, cols) {
+            let csv = cols.map(c => c.header).join(',') + '\n';
+            records.forEach((a, idx) => {
+                const resolved = resolveMailAddress(a);
+                const row = cols.map(c => {
+                    let val = a[c.key] || '';
+                    if (c.key === 'stop') val = idx + 1;
+                    if (c.key === 'company') val = a.company || '';
+                    if (c.key === 'name') val = a.name || 'Current Resident';
+                    if (c.key === 'address') val = resolved.address || a.address;
+                    if (c.key === 'addressSource') val = resolved.source;
+                    if (c.key === 'verifiedAt' && val) val = new Date(val).toLocaleDateString('en-CA');
+                    if (c.key === 'status') val = a.status === STATUS.VERIFIED ? 'Has Pool' : (a.status === STATUS.NO_POOL ? 'No Pool' : 'Pending');
+                    return `"${csvSafe(val)}"`;
+                });
+                csv += row.join(',') + '\n';
+            });
+            return csv;
+        }
+
+        function sortForRoute(records) {
+            return [...records].sort((a, b) => {
+                const zipA = (a.zip || '').substring(0, 5);
+                const zipB = (b.zip || '').substring(0, 5);
+                if (zipA !== zipB) return zipA.localeCompare(zipB);
+                if (a.city !== b.city) return (a.city || '').localeCompare(b.city || '');
+                const streetA = (a.address || '').replace(/^\d+\s*/, '');
+                const streetB = (b.address || '').replace(/^\d+\s*/, '');
+                if (streetA !== streetB) return streetA.localeCompare(streetB);
+                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0', 10);
+                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0', 10);
+                return numA - numB;
+            });
+        }
+
+        // --- Folder-based per-subdivision export (File System Access API) ---
+        async function saveToDirectory(entries, cols, isRouteFormat) {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            for (const [subdiv, records] of entries) {
+                const sorted = isRouteFormat ? sortForRoute(records) : records;
+                const csv = buildCSV(sorted, cols);
+                const safeName = subdiv.replace(/[^a-zA-Z0-9 _-]/g, '').replace(/\s+/g, '_');
+                const fileHandle = await dirHandle.getFileHandle(`${safeName}.csv`, { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(csv);
+                await writable.close();
+            }
+        }
+
+        // --- ZIP fallback (no external library, STORE method) ---
+        function saveAsZip(entries, cols, isRouteFormat) {
+            const files = [];
+            for (const [subdiv, records] of entries) {
+                const sorted = isRouteFormat ? sortForRoute(records) : records;
+                const csv = buildCSV(sorted, cols);
+                const safeName = subdiv.replace(/[^a-zA-Z0-9 _-]/g, '').replace(/\s+/g, '_');
+                files.push({ name: `${safeName}.csv`, data: new TextEncoder().encode(csv) });
+            }
+
+            // CRC32 lookup table
+            const crcTable = new Uint32Array(256);
+            for (let i = 0; i < 256; i++) {
+                let c = i;
+                for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                crcTable[i] = c;
+            }
+            function crc32(buf) {
+                let crc = 0xFFFFFFFF;
+                for (let i = 0; i < buf.length; i++) crc = crcTable[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
+                return (crc ^ 0xFFFFFFFF) >>> 0;
+            }
+
+            // Build zip in memory (STORE, no compression)
+            const parts = [];
+            const centralDir = [];
+            let offset = 0;
+
+            for (const f of files) {
+                const nameBytes = new TextEncoder().encode(f.name);
+                const crc = crc32(f.data);
+                const size = f.data.length;
+
+                // Local file header (30 + name length)
+                const local = new Uint8Array(30 + nameBytes.length);
+                const lv = new DataView(local.buffer);
+                lv.setUint32(0, 0x04034b50, true);  // signature
+                lv.setUint16(4, 20, true);           // version needed
+                lv.setUint16(6, 0, true);            // flags
+                lv.setUint16(8, 0, true);            // compression (STORE)
+                lv.setUint16(10, 0, true);           // mod time
+                lv.setUint16(12, 0, true);           // mod date
+                lv.setUint32(14, crc, true);
+                lv.setUint32(18, size, true);        // compressed size
+                lv.setUint32(22, size, true);        // uncompressed size
+                lv.setUint16(26, nameBytes.length, true);
+                lv.setUint16(28, 0, true);           // extra length
+                local.set(nameBytes, 30);
+                parts.push(local, f.data);
+
+                // Central directory entry (46 + name length)
+                const cd = new Uint8Array(46 + nameBytes.length);
+                const cv = new DataView(cd.buffer);
+                cv.setUint32(0, 0x02014b50, true);   // signature
+                cv.setUint16(4, 20, true);            // version made by
+                cv.setUint16(6, 20, true);            // version needed
+                cv.setUint16(8, 0, true);             // flags
+                cv.setUint16(10, 0, true);            // compression
+                cv.setUint16(12, 0, true);            // mod time
+                cv.setUint16(14, 0, true);            // mod date
+                cv.setUint32(16, crc, true);
+                cv.setUint32(20, size, true);
+                cv.setUint32(24, size, true);
+                cv.setUint16(28, nameBytes.length, true);
+                cv.setUint16(30, 0, true);            // extra length
+                cv.setUint16(32, 0, true);            // comment length
+                cv.setUint16(34, 0, true);            // disk start
+                cv.setUint16(36, 0, true);            // internal attrs
+                cv.setUint32(38, 0, true);            // external attrs
+                cv.setUint32(42, offset, true);       // local header offset
+                cd.set(nameBytes, 46);
+                centralDir.push(cd);
+
+                offset += local.length + f.data.length;
+            }
+
+            const cdStart = offset;
+            let cdSize = 0;
+            centralDir.forEach(cd => cdSize += cd.length);
+
+            // End of central directory (22 bytes)
+            const eocd = new Uint8Array(22);
+            const ev = new DataView(eocd.buffer);
+            ev.setUint32(0, 0x06054b50, true);
+            ev.setUint16(4, 0, true);
+            ev.setUint16(6, 0, true);
+            ev.setUint16(8, files.length, true);
+            ev.setUint16(10, files.length, true);
+            ev.setUint32(12, cdSize, true);
+            ev.setUint32(16, cdStart, true);
+            ev.setUint16(20, 0, true);
+
+            const blob = new Blob([...parts, ...centralDir, eocd], { type: 'application/zip' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Pool_Export_${new Date().toISOString().slice(0, 10)}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`Downloaded zip with ${files.length} subdivision files (${entries.reduce((s, e) => s + e[1].length, 0)} addresses)`, 'success');
+        }
+
+        async function doExport() {
+            const filter = document.getElementById('exportFilter').value;
+            const isRouteFormat = document.getElementById('expRouteFormat')?.checked;
+            const perSubdiv = document.getElementById('expPerSubdiv')?.checked;
+
+            let toExport = [];
+            if (filter === 'verified') toExport = addresses.filter(a => a.status === STATUS.VERIFIED);
+            else if (filter === 'all-reviewed') toExport = addresses.filter(a => a.status === STATUS.VERIFIED || a.status === STATUS.NO_POOL);
+            else toExport = [...addresses];
+
+            if (toExport.length === 0) {
+                showToast('No addresses match the filter', 'error');
+                return;
+            }
+
+            const cols = getExportColumns(isRouteFormat);
             if (cols.length === 0) {
                 showToast('Select at least one column', 'error');
                 return;
             }
 
-            let csv = cols.map(c => c.header).join(',') + '\n';
-            toExport.forEach((a, idx) => {
-                const row = cols.map(c => {
-                    let val = a[c.key] || '';
-                    // Handle special cases
-                    if (c.key === 'stop') val = idx + 1;
-                    if (c.key === 'company') val = a.company || '';
-                    if (c.key === 'name') val = a.name || 'Current Resident';
-                    if (c.key === 'verifiedAt' && val) val = new Date(val).toLocaleDateString();
-                    if (c.key === 'status') val = a.status === 'verified' ? 'Has Pool' : (a.status === 'no-pool' ? 'No Pool' : 'Pending');
-                    return `"${String(val).replace(/"/g, '""')}"`;
+            if (perSubdiv) {
+                // Group by subdivision
+                const groups = {};
+                toExport.forEach(a => {
+                    const sub = (a.subdivision || '').trim() || 'No_Subdivision';
+                    if (!groups[sub]) groups[sub] = [];
+                    groups[sub].push(a);
                 });
-                csv += row.join(',') + '\n';
-            });
+                const entries = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
 
-            const filterName = filter === 'verified' ? 'Verified' : filter === 'all-reviewed' ? 'Reviewed' : 'All';
-            const fileName = isRouteFormat ? `Pool_Route_${new Date().toISOString().slice(0,10)}.csv` : `Pool_${filterName}_${new Date().toISOString().slice(0,10)}.csv`;
-            downloadFile(csv, fileName);
-            showToast(`Exported ${toExport.length} addresses${isRouteFormat ? ' (route sorted)' : ''}`, 'success');
+                if (window.showDirectoryPicker) {
+                    try {
+                        await saveToDirectory(entries, cols, isRouteFormat);
+                        showToast(`Saved ${entries.length} files (${toExport.length} addresses) to folder`, 'success');
+                    } catch (e) {
+                        if (e.name === 'AbortError') return; // user cancelled
+                        console.warn('[verifier] folder save failed, falling back to zip:', e.message);
+                        saveAsZip(entries, cols, isRouteFormat);
+                    }
+                } else {
+                    saveAsZip(entries, cols, isRouteFormat);
+                }
+                closeExportModal();
+                return;
+            } else {
+                // Single file export
+                if (isRouteFormat) toExport = sortForRoute(toExport);
+                const csv = buildCSV(toExport, cols);
+
+                const customName = (document.getElementById('expFileName').value || '').trim();
+                const filterName = filter === 'verified' ? 'Verified' : filter === 'all-reviewed' ? 'Reviewed' : 'All';
+                const fileName = customName
+                    ? `${customName.replace(/\.csv$/i, '')}.csv`
+                    : isRouteFormat ? `Pool_Route_${new Date().toISOString().slice(0,10)}.csv` : `Pool_${filterName}_${new Date().toISOString().slice(0,10)}.csv`;
+                downloadFile(csv, fileName);
+                showToast(`Exported ${toExport.length} addresses${isRouteFormat ? ' (route sorted)' : ''}`, 'success');
+            }
             closeExportModal();
         }
 
@@ -1379,7 +1801,7 @@
             if (addresses.length === 0) { showToast('No addresses to sort', 'error'); return; }
 
             // Sort by subdivision first (walking clusters), then street, then house number
-            addresses.sort((a, b) => {
+            addresses = [...addresses].sort((a, b) => {
                 // 1. Group by subdivision (walking distance clusters)
                 const subdivA = (a.subdivision || '').toLowerCase();
                 const subdivB = (b.subdivision || '').toLowerCase();
@@ -1396,8 +1818,8 @@
                 if (streetA !== streetB) return streetA.localeCompare(streetB);
 
                 // 4. Then by house number (sequential for walking)
-                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0');
-                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
+                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0', 10);
+                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0', 10);
                 return numA - numB;
             });
 
@@ -1412,7 +1834,7 @@
 
         function openGoogleMapsRoute() {
             // Get verified addresses for route
-            const verified = addresses.filter(a => a.status === 'verified');
+            const verified = addresses.filter(a => a.status === STATUS.VERIFIED);
             const toRoute = verified.length > 0 ? verified : addresses;
 
             if (toRoute.length === 0) {
@@ -1471,16 +1893,16 @@
                 const streetA = (a.address || '').replace(/^\d+\s*/, '').toLowerCase();
                 const streetB = (b.address || '').replace(/^\d+\s*/, '').toLowerCase();
                 if (streetA !== streetB) return streetA.localeCompare(streetB);
-                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0');
-                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
+                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0', 10);
+                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0', 10);
                 return numA - numB;
             });
 
             const subdivName = subdivFilter === 'all' ? 'all addresses' : subdivFilter;
 
             // If more than 10 stops, show options
-            if (toRoute.length > 10) {
-                const choice = confirm(`${toRoute.length} stops in ${subdivName}.\n\nOK = View all as pins on map\nCancel = Open in batches of 10 (walking directions)`);
+            if (toRoute.length > MAX_ROUTE_STOPS) {
+                const choice = confirm(`${toRoute.length} stops in ${subdivName}.\n\nOK = View all as pins on map\nCancel = Open in batches of ${MAX_ROUTE_STOPS} (walking directions)`);
 
                 if (choice) {
                     // View all as pins - no waypoint limit
@@ -1512,7 +1934,16 @@
             window.open(mapsUrl, '_blank', 'noopener,noreferrer');
 
             // Show the stop list for reference (intentional: displays multi-line route list)
-            alert(`📍 ${toRoute.length} STOPS (walking order):\n\n${stopList}\n\n✓ List copied to clipboard\n✓ Map opened to area`);
+            // Show route stop list in a styled modal instead of blocking alert
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            overlay.onclick = () => overlay.remove();
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:#1e293b;color:#e2e8f0;border-radius:12px;padding:24px;max-width:420px;width:90%;max-height:70vh;overflow-y:auto;font-family:system-ui;';
+            modal.innerHTML = `<h3 style="margin:0 0 12px;color:#38bdf8;">📍 ${escapeHtml(String(toRoute.length))} STOPS (walking order)</h3><pre style="white-space:pre-wrap;font-size:13px;line-height:1.6;margin:0 0 16px;">${escapeHtml(stopList)}</pre><p style="color:#94a3b8;font-size:12px;margin:0;">✓ List copied to clipboard &nbsp; ✓ Map opened to area</p><button onclick="this.closest('div[style*=fixed]').remove()" style="margin-top:12px;padding:8px 20px;background:#38bdf8;color:#0f172a;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Close</button>`;
+            modal.onclick = e => e.stopPropagation();
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
         }
 
         // Open walking directions in batches of 10
@@ -1562,8 +1993,8 @@
                 const streetA = (a.address || '').replace(/^\d+\s*/, '');
                 const streetB = (b.address || '').replace(/^\d+\s*/, '');
                 if (streetA !== streetB) return streetA.localeCompare(streetB);
-                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0');
-                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0');
+                const numA = parseInt((a.address || '').match(/^\d+/)?.[0] || '0', 10);
+                const numB = parseInt((b.address || '').match(/^\d+/)?.[0] || '0', 10);
                 return numA - numB;
             });
 
@@ -1588,8 +2019,8 @@
         }
 
         // Expand common Florida subdivision abbreviations
-        function expandSubdivisionAbbrevs(str) {
-            if (!str) return '';
+        // Pre-compiled regex map for subdivision abbreviation expansion (V7: avoid recompiling in loop)
+        const SUBDIV_ABBREV_RULES = (() => {
             const abbrevs = {
                 'Brs ': "Bear's ", 'Brs$': "Bear's",
                 'Lk ': 'Lake ', 'Lk$': 'Lake',
@@ -1633,18 +2064,21 @@
                 'Sec ': 'Section ', 'Blk ': 'Block ',
                 'Tr ': 'Tract ', 'Lot ': 'Lot '
             };
-
-            let result = str;
-            for (const [abbr, full] of Object.entries(abbrevs)) {
+            return Object.entries(abbrevs).map(([abbr, full]) => {
                 if (abbr.endsWith('$')) {
-                    // End of string match
                     const pattern = abbr.slice(0, -1);
-                    const regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gi');
-                    result = result.replace(regex, full.trim());
-                } else {
-                    const regex = new RegExp(abbr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-                    result = result.replace(regex, full);
+                    return { regex: new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'gi'), replacement: full.trim() };
                 }
+                return { regex: new RegExp(abbr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), replacement: full };
+            });
+        })();
+
+        function expandSubdivisionAbbrevs(str) {
+            if (!str) return '';
+            let result = str;
+            for (const { regex, replacement } of SUBDIV_ABBREV_RULES) {
+                regex.lastIndex = 0;
+                result = result.replace(regex, replacement);
             }
             return result.trim();
         }
@@ -1673,7 +2107,9 @@
                 return;
             }
 
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+            // Guard: don't fire shortcuts while a modal is open
+            if (document.querySelector('.modal.show')) return;
             if (addresses.length === 0) return;
 
             switch(e.key.toLowerCase()) {
@@ -1692,18 +2128,28 @@
 
         // Drag and drop
         document.body.addEventListener('dragover', e => e.preventDefault());
+        const MAX_CSV_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
         document.body.addEventListener('drop', e => {
             e.preventDefault();
             const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.csv')) {
-                loadCSV({ target: { files: [file] } });
+            if (!file) return;
+            if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
+                showToast('Only CSV files are accepted', 'error');
+                return;
             }
+            if (file.size > MAX_CSV_SIZE_BYTES) {
+                showToast('File too large (max 5MB)', 'error');
+                return;
+            }
+            loadCSV({ target: { files: [file] } });
         });
 
         // Clear all data
         function clearAllData() {
             if (!confirm('Clear all verification data? This cannot be undone.')) return;
             localStorage.removeItem('poolVerifierData');
+            localStorage.removeItem('poolVerifier_session');
+            localStorage.removeItem('poolscraper_filtered');
             addresses = [];
             currentIndex = -1;
             document.getElementById('addressList').innerHTML = '<div class="empty-state"><p>Load a CSV to begin</p></div>';

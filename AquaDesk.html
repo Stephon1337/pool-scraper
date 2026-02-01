@@ -200,7 +200,7 @@
 
     function safeJSON(key, fallback) {
       try { return JSON.parse(localStorage.getItem(key)) || fallback; }
-      catch { return fallback; }
+      catch (e) { console.warn('[AquaDesk] safeJSON parse error for key:', key, e.message); return fallback; }
     }
 
     function refreshDashboard() {

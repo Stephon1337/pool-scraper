@@ -899,6 +899,29 @@
     const MIN_YEAR_BUILT = 1800;
     const EARTH_RADIUS_KM = 6371;
     const DEFAULT_RECYCLE_DAYS = 30;
+    const MAX_LOCALSTORAGE_RECORDS = 5000;
+    const GEOCACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+    const LOOKUP_TIMEOUT_MS = 10000;
+
+    // DOR property type codes (Florida)
+    const DOR_CODES = Object.freeze({
+      VACANT: 0, SFR: 1, MOBILE: 2, MULTI_FAMILY: 3, CONDO: 4,
+      COOP: 5, RETIREMENT: 6, MISC_RES: 7, APARTMENTS: 8, HOA_COMMON: 9
+    });
+
+    // US state name → abbreviation map
+    const STATE_NAME_TO_ABBREV = Object.freeze({
+      'ALABAMA': 'AL', 'ALASKA': 'AK', 'ARIZONA': 'AZ', 'ARKANSAS': 'AR', 'CALIFORNIA': 'CA',
+      'COLORADO': 'CO', 'CONNECTICUT': 'CT', 'DELAWARE': 'DE', 'FLORIDA': 'FL', 'GEORGIA': 'GA',
+      'HAWAII': 'HI', 'IDAHO': 'ID', 'ILLINOIS': 'IL', 'INDIANA': 'IN', 'IOWA': 'IA',
+      'KANSAS': 'KS', 'KENTUCKY': 'KY', 'LOUISIANA': 'LA', 'MAINE': 'ME', 'MARYLAND': 'MD',
+      'MASSACHUSETTS': 'MA', 'MICHIGAN': 'MI', 'MINNESOTA': 'MN', 'MISSISSIPPI': 'MS', 'MISSOURI': 'MO',
+      'MONTANA': 'MT', 'NEBRASKA': 'NE', 'NEVADA': 'NV', 'NEW HAMPSHIRE': 'NH', 'NEW JERSEY': 'NJ',
+      'NEW MEXICO': 'NM', 'NEW YORK': 'NY', 'NORTH CAROLINA': 'NC', 'NORTH DAKOTA': 'ND', 'OHIO': 'OH',
+      'OKLAHOMA': 'OK', 'OREGON': 'OR', 'PENNSYLVANIA': 'PA', 'RHODE ISLAND': 'RI', 'SOUTH CAROLINA': 'SC',
+      'SOUTH DAKOTA': 'SD', 'TENNESSEE': 'TN', 'TEXAS': 'TX', 'UTAH': 'UT', 'VERMONT': 'VT',
+      'VIRGINIA': 'VA', 'WASHINGTON': 'WA', 'WEST VIRGINIA': 'WV', 'WISCONSIN': 'WI', 'WYOMING': 'WY'
+    });
 
     // HTML escape for XSS prevention
     function escapeHtml(str) {
@@ -3185,12 +3208,12 @@
       let targetState = document.getElementById('targetState').value.toUpperCase().trim();
 
       // Auto-detect primary state from data if not specified
-      if (!targetState && stateIdx >= 0 && rows.length > 1) {
+      if (!targetState && stateIdx >= 0 && parsedRows.length > 1) {
         const stateCounts = {};
-        const sampleRows = rows.slice(1, Math.min(101, rows.length));
+        const sampleRows = parsedRows.slice(1, Math.min(101, parsedRows.length));
         for (const row of sampleRows) {
           const s = (row[stateIdx] || '').toUpperCase().trim();
-          const abbrev = s.length === 2 ? s : (stateMap[s] || '');
+          const abbrev = s.length === 2 ? s : (STATE_NAME_TO_ABBREV[s] || '');
           if (abbrev) stateCounts[abbrev] = (stateCounts[abbrev] || 0) + 1;
         }
         const detected = Object.entries(stateCounts).sort((a, b) => b[1] - a[1])[0];
@@ -3339,14 +3362,14 @@
           // 09 = Residential Common Area / HOA
           // 10+ = Commercial, Industrial, Agricultural, etc.
 
-          const isSFR = dorCode === 1 || propType.includes('SINGLE') || propType.includes('SFR');
-          const isCondo = dorCode === 4 || dorCode === 5 || propType.includes('CONDO') || propType.includes('COOP');
-          const isMulti = dorCode === 2 || dorCode === 3 || dorCode === 6 || dorCode === 7 || dorCode === 8 ||
+          const isSFR = dorCode === DOR_CODES.SFR || propType.includes('SINGLE') || propType.includes('SFR');
+          const isCondo = dorCode === DOR_CODES.CONDO || dorCode === DOR_CODES.COOP || propType.includes('CONDO') || propType.includes('COOP');
+          const isMulti = dorCode === DOR_CODES.MOBILE || dorCode === DOR_CODES.MULTI_FAMILY || dorCode === DOR_CODES.RETIREMENT || dorCode === DOR_CODES.MISC_RES || dorCode === DOR_CODES.APARTMENTS ||
             propType.includes('MULTI') || propType.includes('DUPLEX') || propType.includes('MOBILE');
-          const isVacant = dorCode === 0 || propType.includes('VACANT');
+          const isVacant = dorCode === DOR_CODES.VACANT || propType.includes('VACANT');
 
           // Commercial/Business property types (DOR 09 = HOA common area, 10+ = commercial)
-          const isCommercial = dorCode === 9 || dorCode >= 10;
+          const isCommercial = dorCode === DOR_CODES.HOA_COMMON || dorCode >= 10;
           const isBusinessType = propType.includes('COMMERCIAL') || propType.includes('INDUSTRIAL') ||
             propType.includes('OFFICE') || propType.includes('RETAIL') || propType.includes('APARTMENT') ||
             propType.includes('HOTEL') || propType.includes('MOTEL') || propType.includes('WAREHOUSE') ||
@@ -4378,12 +4401,11 @@
         saveToIDB(session);
       } catch (e) {
         // localStorage full — save full dataset to IndexedDB (no size limit)
-        saveToIDB(session);
         if (e.name === 'QuotaExceededError') {
           localStorage.removeItem('poolscraper_history');
           try {
             const partialSession = JSON.stringify({
-              results: results.slice(0, 5000),
+              results: results.slice(0, MAX_LOCALSTORAGE_RECORDS),
               stats: stats,
               timestamp: new Date().toISOString()
             });
@@ -4556,8 +4578,12 @@
       const endIdx = startIdx + perPage;
       const pageResults = displayResults.slice(startIdx, endIdx);
 
+      // Pre-build reference map for O(1) index lookup
+      const filteredIdxMap = new Map();
+      filteredResults.forEach((r, idx) => filteredIdxMap.set(r, idx));
+
       tableBody.innerHTML = pageResults.map((r, i) => {
-        const globalIdx = filteredResults.indexOf(r); // Map back to filteredResults index for edit/delete
+        const globalIdx = filteredIdxMap.get(r) ?? -1; // O(1) lookup for edit/delete
         const key = `${r.address}|${r.city}|${r.zipcode}`.toUpperCase();
         const tracker = mailedTracker[key];
         const mailCount = tracker ? tracker.count : 0;
@@ -5086,6 +5112,7 @@
         showToast('Popup blocked - please allow popups');
         return;
       }
+      printWindow.document.open();
       printWindow.document.write(html);
       printWindow.document.close();
 
@@ -5097,10 +5124,18 @@
 
     // ── Geo-sorted walking route ──────────────────────────────────────
     function loadGeoCache() {
-      try { return JSON.parse(localStorage.getItem('poolscraper_geoCache') || '{}'); }
-      catch { return {}; }
+      try {
+        const raw = JSON.parse(localStorage.getItem('poolscraper_geoCache') || '{}');
+        // Invalidate entries older than TTL
+        if (raw._timestamp && (Date.now() - raw._timestamp > GEOCACHE_TTL_MS)) {
+          localStorage.removeItem('poolscraper_geoCache');
+          return {};
+        }
+        return raw;
+      } catch { return {}; }
     }
     function saveGeoCache(cache) {
+      cache._timestamp = Date.now();
       try { localStorage.setItem('poolscraper_geoCache', JSON.stringify(cache)); }
       catch (e) { console.warn('Geo cache save failed:', e); }
     }
@@ -5566,14 +5601,23 @@
       if (_staleRemoved) persistSubdivSelections();
 
       const container = document.getElementById('subdivChecklist');
-      container.innerHTML = sorted.map(([name, count]) => {
-        const safeName = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-        const checked = selectedSubdivisions.has(name) ? 'checked' : '';
-        return `<label style="display:flex; align-items:center; gap:4px; padding:3px 8px; background:#1a1a24; border:1px solid #2a2a35; border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap;">
-          <input type="checkbox" ${checked} data-subdiv="${safeName}" onchange="onSubdivToggle(this)">
-          ${safeName} <span style="color:#71717a;">(${count})</span>
-        </label>`;
-      }).join('');
+      container.textContent = '';
+      sorted.forEach(([name, count]) => {
+        const label = document.createElement('label');
+        label.style.cssText = 'display:flex; align-items:center; gap:4px; padding:3px 8px; background:#1a1a24; border:1px solid #2a2a35; border-radius:4px; font-size:11px; cursor:pointer; white-space:nowrap;';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = selectedSubdivisions.has(name);
+        cb.dataset.subdiv = name; // Raw name, no HTML escaping needed on dataset property
+        cb.addEventListener('change', function() { onSubdivToggle(this); });
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(` ${name} `));
+        const span = document.createElement('span');
+        span.style.color = '#71717a';
+        span.textContent = `(${count})`;
+        label.appendChild(span);
+        container.appendChild(label);
+      });
 
       picker.style.display = 'block';
       updateSubdivCount();
@@ -5687,7 +5731,7 @@
           const seenKeys = new Set();
           const unique = [];
           for (const r of records) {
-            const key = `${(r.address || '').toUpperCase()}|${r.zipcode}`;
+            const key = `${(r.address || '').toUpperCase()}|${(r.city || '').toUpperCase()}|${r.zipcode}`;
             if (!seenKeys.has(key)) {
               unique.push(r);
               seenKeys.add(key);
@@ -6154,7 +6198,7 @@
       // Clean the address
       const cleanStreet = street.replace(/[#,]/g, '').trim();
       const cleanCity = (city || '').trim();
-      const cleanState = (state || 'FL').trim();
+      const cleanState = (state || (typeof targetState !== 'undefined' && targetState) || 'FL').trim();
 
       // Build the URL for Census Geocoder
       const baseUrl = 'https://geocoding.geo.census.gov/geocoder/locations/address';
@@ -6169,10 +6213,14 @@
       if (cleanState) params.append('state', cleanState);
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS);
         const response = await fetch(`${baseUrl}?${params}`, {
           method: 'GET',
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) return null;
 
@@ -6323,11 +6371,11 @@
         case '/':
           // Focus search
           e.preventDefault();
-          document.getElementById('searchBox').focus();
+          document.getElementById('searchInput').focus();
           break;
         case 'escape':
           // Clear filters
-          document.getElementById('searchBox').value = '';
+          document.getElementById('searchInput').value = '';
           currentFilter = 'all';
           currentCityFilter = null;
           currentZipFilter = null;
